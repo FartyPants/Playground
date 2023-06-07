@@ -88,8 +88,7 @@ def generate_reply_wrapperMY(question, state):
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
     #interface_state = gr.State({k: None for k in input_elements})
-    global addLR
-    addLR = False
+
     with gr.Row():
         with gr.Column():
             with gr.Row():

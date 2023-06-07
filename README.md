@@ -31,8 +31,7 @@ but if you prepend three dashes
 this now means the line is an instruct and the LLM will respond according to it's fine tune
 ```
 --- What is another word for happy?
-Oh, there are loads of them. There's cheerful and joyous, euphoric. I suppose jubilant, that might be good, 
-it's like happy in Spanish, isn't it?
+Oh, there are loads of them. There's cheerful and joyous, euphoric. I suppose jubilant, that might be good, it's like happy in Spanish, isn't it?
 --- You had been most helpful
 Was I? Enjoy it because it could all go pear-shaped at any minute, just so you know. I'm just an idiot being friendly.
  ```

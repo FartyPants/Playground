@@ -31,7 +31,7 @@ but if you prepend three dashes
 this now means the line is an instruct and the LLM will respond according to it's fine tune
 ```
 --- What is another word for happy?
- There are many words that can be used to describe happiness, such as joyful, ecstatic, elated or delighted.
+ Well, there's cheerful and joyous, euphoric. I suppose jubilant, that might be good, it's like happy in Spanish, isn't it?
  ```
  
  Similarly you can give a followup instructions:

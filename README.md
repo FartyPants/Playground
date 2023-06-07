@@ -48,7 +48,7 @@ this now means the line is an instruct and the LLM will respond according to it'
  which sent him on an acid trip unlike any other.
 ```
 
-Other interesting thing is that yyou may just simply change the User/Bot prompts and see how the response changes!
+Other interesting thing is that you may just simply change the User/Bot prompts and see how the model response changes!
 
 So you have both the instruct mode AND the flexibility of notebook.
 

@@ -50,7 +50,7 @@ Was I? Enjoy it because it could all go pear-shaped at any minute, just so you k
  which sent him on an acid trip unlike any other.
 ```
 
-Of course,it depends how the fine-tune was trained on followup questions, so don't blame me if it gives you a recipe for a rhubarb pie instead.
+Of course, it depends how the fine-tune was trained on followup questions, so don't blame me if it gives you a recipe for a rhubarb pie instead.
 
 Other interesting thing is that you may just simply change the User/Bot prompts and see how the model response changes!
 

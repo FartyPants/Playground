@@ -22,7 +22,7 @@ What is another word for happy?
 the LLM may likely answer in another question:
 ```
 What is another word for happy?
-In what way did the Great Depression affect American families and the government?
+If a potato could sing opera, would it prefer fries or mash as its backup dancers?
 ```
 but if you prepend three dashes
 ```

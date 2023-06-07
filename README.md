@@ -35,9 +35,10 @@ this now means the line is an instruct and the LLM will respond according to it'
  ```
  
  Similarly you can give a followup instructions:
- 
- Once upon a time in a land not so far away there lived a young lad called Jack who was very good at his job. One day while walking through the forest he stumbled across an old man sitting by a stream, looking tired and hungry. 
+
 ```
+ Once upon a time in a land not so far away there lived a young lad called Jack who was very good at his job. One day while walking through the forest he stumbled across an old man sitting by a stream, looking tired and hungry. 
+
 --- Make the above text sound much funnier
  Once upon a time in a fantasy world where unicorns roam free and rainbows arch over crystal-clear waterfalls, there once was a hero named Jack. While on a quest to save a damsel in distress from an evil dragon, he accidentally fell into a pit of mushrooms which sent him on an acid trip unlike any other.
 ```
@@ -47,6 +48,23 @@ Other interesting thing is that yyou may just simply change the User/Bot prompts
 So you have both the instruct mode AND the flexibility of notebook.
 
 Am I clever or what?
+
+## Installation to your ooba
+The extension can be installed by cloning this repository inside the ../text-generation-webui/extensions folder:
+
+```
+cd PATH_TO_text-generation-webui/extensions
+```
+then clone this repo
+```
+git clone https://github.com/FartyPants/Playground
+```
+
+If you want to always load the extension on start (and you do, yes you do) add
+```
+ --extensions Playground
+ ```
+ into your webui.py
 
 
 

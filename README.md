@@ -7,7 +7,7 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - two independent Notebooks that are always present, regardless of the mode
 - you can type in one while the other is generating.
 - Quick instruct syntax
-- Select and Insert - generate in the middle of text
+- Select and Insert - generate text in the middle of your text
 
 But wait, that's not all!
 

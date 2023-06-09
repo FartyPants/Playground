@@ -1,7 +1,7 @@
 # Playground
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 ```diff
--at some point I uploaded wrong script to the repo as it was 3.00 a.m., so if you tried it and didn't 
+-at some point I uploaded totally wrong script to the repo as it was 3.00 a.m., so if you tried it and didn't 
 -see Playground tab that's why. 
 +Now it is fixed. When you do something, do it incorrectly.
 ```

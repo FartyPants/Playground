@@ -3,14 +3,17 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/bb9899f0-b3dd-4b9a-8f4e-ba168c95484d)
 
-You have two independent Notebooks that are always present, regardless of the mode.
-You can explore variations and try many new things.
-You can type in one while the other is generating.
+## Features
+- two independent Notebooks that are always present, regardless of the mode
+- you can type in one while the other is generating.
+- Quick instruct syntax
+- Select and Insert - generate in the middle of text
 
 But wait, that's not all!
 
 No. 
 
+## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/9320a2ec-9d17-45f7-936a-567cd0531447)
@@ -56,7 +59,7 @@ Other interesting thing is that you may just simply change the User/Bot prompts 
 
 So you have both the instruct mode AND the flexibility of notebook.
 
-## New - Select and insert
+## Select and insert
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/0ade45ad-d114-4022-86d6-022c1cee7bf0)
 

@@ -56,6 +56,13 @@ Other interesting thing is that you may just simply change the User/Bot prompts 
 
 So you have both the instruct mode AND the flexibility of notebook.
 
+## New - Select and insert
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/0ade45ad-d114-4022-86d6-022c1cee7bf0)
+
+Using Generate [SEL] will send only the text that is selected to LLM and insert the generated text after the selection.
+You will love this.
+
 Am I clever or what? Let me ask my gently fine-tuned bot:
 ```
 --- Am I clever or what?

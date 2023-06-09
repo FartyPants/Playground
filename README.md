@@ -1,6 +1,6 @@
 # Playground
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
-### at some point I uploaded wrong script to the repo, so if you tried it and don't get Playground tab but Merge tab, that's why. Now it is fixed.
+### !!!at some point I uploaded wrong script to the repo, so if you tried it and don't get Playground tab but Merge tab, that's why. Now it is fixed.
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/bb9899f0-b3dd-4b9a-8f4e-ba168c95484d)
 

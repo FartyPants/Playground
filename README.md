@@ -9,10 +9,6 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - Quick instruct syntax
 - Select and Insert - generate text in the middle of your text
 
-But wait, that's not all!
-
-No. 
-
 ## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)
 

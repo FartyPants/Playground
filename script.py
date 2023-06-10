@@ -10,6 +10,18 @@ from modules.ui import list_interface_input_elements
 from modules.ui import gather_interface_values
 from modules.html_generator import generate_basic_html
 
+right_symbol = '\U000027A1'
+left_symbol = '\U00002B05'
+
+
+class ToolButton(gr.Button, gr.components.FormComponent):
+    """Small button with single emoji as text, fits inside gradio forms"""
+
+    def __init__(self, **kwargs):
+        super().__init__(variant="tool", **kwargs)
+
+    def get_block_name(self):
+        return "button"
 
 try:
     with open('notebook.sav', 'rb') as f:
@@ -24,6 +36,7 @@ except FileNotFoundError:
         "selectA": [0,0],
         "selectB": [0,0]
     }
+
 
 def get_last_line(string):
     lines = string.splitlines()
@@ -137,16 +150,20 @@ def ui():
                     with gr.Row():
                         htmlA = gr.HTML()
             with gr.Row():
-                generate_btnA = gr.Button('Generate', variant='primary', elem_classes="small-button")
-                generate_SelA = gr.Button('Generate [SEL]', variant='primary', elem_classes="small-button")
-                stop_btnA = gr.Button('Stop', elem_classes="small-button")
-                toNoteB = gr.Button('Copy to B', elem_classes="small-button")
+                with gr.Column(scale=10):
+                     with gr.Row():
+                        generate_btnA = gr.Button('Generate', variant='primary', elem_classes="small-button")
+                        generate_SelA = gr.Button('Generate [SEL]', variant='primary', elem_classes="small-button")
+                        stop_btnA = gr.Button('Stop', elem_classes="small-button")
+                with gr.Column(scale=1, min_width=50):    
+                    toNoteB = ToolButton(value=right_symbol)
+                    #toNoteB = gr.Button('Copy to B', elem_classes="small-button")
             with gr.Row():
                 with gr.Box():
                     with gr.Column():    
                         usePR = gr.Checkbox(value=params['usePR'], label='Enable Quick Instruct (line starts with three dashes --- )')
                         with gr.Row():
-                            preset_type = gr.Dropdown(label="Preset", choices=["Custom", "Vicuna", "Alpaca", "Guanaco"], value="Custom")
+                            preset_type = gr.Dropdown(label="Preset", choices=["Custom", "Vicuna", "Alpaca", "Guanaco", "OpenAssistant"], value="Custom")
                             text_USR = gr.Textbox(value=params['pUSER'], lines=1, label='User string')
                             text_BOT = gr.Textbox(value=params['pBOT'], lines=1, label='Bot string')
                         gr.Markdown('Example: --- What are synonyms for happy?')    
@@ -159,13 +176,16 @@ def ui():
                 with gr.Tab('HTML'):
                     with gr.Row():
                         htmlB = gr.HTML()
+            with gr.Row():
+                with gr.Column(scale=10):
+                    with gr.Row():    
+                        generate_btnB = gr.Button('Generate', variant='primary', elem_classes="small-button")
+                        generate_SelB = gr.Button('Generate [SEL]',variant='primary', elem_classes="small-button")
+                        stop_btnB = gr.Button('Stop', elem_classes="small-button")
+                with gr.Column(scale=1, min_width=50):       
+                    toNoteA = ToolButton(value=left_symbol)
             with gr.Row():    
-                generate_btnB = gr.Button('Generate', variant='primary', elem_classes="small-button")
-                generate_SelB = gr.Button('Generate [SEL]',variant='primary', elem_classes="small-button")
-                stop_btnB = gr.Button('Stop', elem_classes="small-button")
-                toNoteA = gr.Button('Copy to A', elem_classes="small-button")
-            with gr.Row():    
-                gr.Markdown('    (v.1.0    FPham 2023)')
+                gr.Markdown('(v.1.0    FPham 2023)')
 
     selectStateA = gr.State('selectA')
     selectStateB = gr.State('selectB')
@@ -236,6 +256,8 @@ def ui():
             return '### Instruction:','### Response:'
         elif x == "Guanaco":
             return '### Human:','### Assistant:'
+        elif x == "OpenAssistant":
+            return '<|prompter|>','<|endoftext|><|assistant|>'
         
         return 'USER:','ASSISTANT:'           
 

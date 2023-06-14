@@ -80,7 +80,8 @@ If you want to always load the extension on start (and you do, yes you do) add
  into your webui.py
  
  ## Perma memory
- ![image](https://github.com/FartyPants/Playground/assets/23346289/1a0fcb11-a892-4095-b9f1-6974eea79dcf)
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/67bf9bde-f4a8-4f63-b7d0-237861ed5699)
 
  
 ## To Do (perhaps, perhaps not)

@@ -92,8 +92,10 @@ The flow is :
 
 That is if you set limit memory to 200 and set memory A, the entire text of Memory A will be pushed to LLM then 200 last words of the context you see on the screen. This keeps the LLM constantly conditioned with the "memory"
  
-## To Do (perhaps, perhaps not)
-- add syntax to switch between loaded LoRAs
+## LORA switch
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/907c6fe3-d6d8-47d4-b515-c49406cb1eb7)
+
 
 ## That's all
 Am I clever or what? Let me ask my gently fine-tuned bot:

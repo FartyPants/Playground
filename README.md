@@ -80,7 +80,8 @@ If you want to always load the extension on start (and you do, yes you do) add
  into your webui.py
  
  ## Perma memory
- 
+ ![image](https://github.com/FartyPants/Playground/assets/23346289/1a0fcb11-a892-4095-b9f1-6974eea79dcf)
+
  
 ## To Do (perhaps, perhaps not)
 - add syntax to switch between loaded LoRAs

@@ -94,6 +94,8 @@ That is if you set limit memory to 200 and set memory A, the entire text of Memo
  
 ## LORA switch
 
+Switch between loaded LORAs
+
 ![image](https://github.com/FartyPants/Playground/assets/23346289/907c6fe3-d6d8-47d4-b515-c49406cb1eb7)
 
 

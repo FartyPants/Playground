@@ -13,6 +13,7 @@ import json
 
 right_symbol = '\U000027A1'
 left_symbol = '\U00002B05'
+refresh_symbol = '\U0001f504'  # 🔄
 
 params = {
         "display_name": "Playground",
@@ -41,6 +42,24 @@ class ToolButton(gr.Button, gr.components.FormComponent):
     def get_block_name(self):
         return "button"
 
+
+def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_class):
+    def refresh():
+        refresh_method()
+        args = refreshed_args() if callable(refreshed_args) else refreshed_args
+
+        for k, v in args.items():
+            setattr(refresh_component, k, v)
+
+        return gr.update(**(args or {}))
+
+    refresh_button = ToolButton(value=refresh_symbol, elem_classes=elem_class)
+    refresh_button.click(
+        fn=refresh,
+        inputs=[],
+        outputs=[refresh_component]
+    )
+    return refresh_button
 
 
 def get_last_line(string):
@@ -169,10 +188,41 @@ def generate_reply_wrapperMY(question, state, selectState):
 
         yield formatted_outputs(reply)
 
+def get_available_LORA():
+
+    prior_set = ['None']
+    if hasattr(shared.model,'peft_config'):
+        for adapter_name in shared.model.peft_config.items():
+            print(f"Found adapters: {adapter_name[0]}")
+            prior_set.append(adapter_name[0])
+
+    return prior_set      
+
+def set_LORA(item):
+      
+    prior_set = list(shared.lora_names)
+    if hasattr(shared.model, 'set_adapter') and hasattr(shared.model, 'active_adapter'):
+        if prior_set:
+            if item =='None' and hasattr(shared.model.base_model, 'disable_adapter_layers'):
+                shared.model.base_model.disable_adapter_layers()
+                print (f"[Disable] Adapter layers for: {shared.model.active_adapter}")   
+            else:
+                shared.model.set_adapter(item)
+                print (f"Set active adapter: {shared.model.active_adapter}")  
+                if hasattr(shared.model.base_model, 'enable_adapter_layers'):
+                    shared.model.base_model.enable_adapter_layers()
+                    print (f"[Enable] Adapter layers")  
+                
+            
+
+
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
     #interface_state = gr.State({k: None for k in input_elements})
+
     global params
+
+    model_name = getattr(shared.model,'active_adapter','None')
 
     try:
         with open(file_nameJSON, 'r') as json_file:
@@ -246,7 +296,10 @@ def ui():
             with gr.Row():
                 with gr.Box():
                     with gr.Column(): 
-                        gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Use Perma-Memory', interactive=True)      
+                        gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Use Perma-Memory', interactive=True)
+                        with gr.Row():
+                            gr_Loralmenu = gr.Radio(choices=get_available_LORA(), value=model_name, label='Loaded LORA adapters', interactive=True)
+                            create_refresh_button(gr_Loralmenu, lambda: None, lambda: {'choices': get_available_LORA(),'value': getattr(shared.model, 'active_adapter', None)}, 'refresh-button')      
                         with gr.Row():                            
                             gr.Markdown('v 6/14/2023 FPHam')    
 
@@ -361,4 +414,6 @@ def ui():
     preset_type.change(update_preset,preset_type,[text_USR,text_BOT])
     max_words.change(update_max_words,max_words,None)
     save_btn.click(save_pickle,None,None)
+
+    gr_Loralmenu.change(set_LORA,gr_Loralmenu,None)
 

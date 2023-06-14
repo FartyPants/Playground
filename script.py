@@ -174,15 +174,12 @@ def ui():
     #interface_state = gr.State({k: None for k in input_elements})
     global params
 
-    print (f"{params['memoryA']}")
-
     try:
         with open(file_nameJSON, 'r') as json_file:
             params = json.load(json_file)
     except FileNotFoundError:
         params['max_words'] = 0
 
-    print (f"{params['memoryA']}")
     params['selectA'] = [0,0]
     params['selectB'] = [0,0]
     params['selectedMEM']='None'
@@ -233,20 +230,23 @@ def ui():
                 with gr.Tab('HTML'):
                     with gr.Row():
                         htmlB = gr.HTML()
-                with gr.Tab('Perma Memory'):
+                with gr.Tab('Perma-Memory'):
                     with gr.Column():
                         text_MEMA = gr.Textbox(value=params['memoryA'], lines=5, label='Memory A')
                         text_MEMB = gr.Textbox(value=params['memoryB'], lines=5, label='Memory B')
                         text_MEMC = gr.Textbox(value=params['memoryC'], lines=5, label='Memory C')
-                        max_words = gr.Number(label='Limit text memory to last # of words (0 for no limit, 500 is about half page)', value=params['max_words'])
+                        
+                        max_words = gr.Number(label='Limit Memory to last # of words (0 is no limit, 500 is about half page)', value=params['max_words'])
+                     
                         with gr.Row():
+                            gr.Markdown('Text flow is: Perma-Memory + Limit_Memory ( previous context )') 
                             save_btn = gr.Button('Save', elem_classes="small-button")
 
             
             with gr.Row():
                 with gr.Box():
                     with gr.Column(): 
-                        gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Apply Perma Memory', interactive=True)      
+                        gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Use Perma-Memory', interactive=True)      
                         with gr.Row():                            
                             gr.Markdown('v 6/14/2023 FPHam')    
 

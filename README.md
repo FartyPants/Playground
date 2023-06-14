@@ -1,10 +1,5 @@
 # Playground
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
-```diff
-- at some point I uploaded totally wrong script to the repo as it was 3.00 a.m.
-- so if you tried it and didn't see Playground tab that's why. 
-+ Now it is fixed. When you do something, do it incorrectly.
-```
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/bb9899f0-b3dd-4b9a-8f4e-ba168c95484d)
 
@@ -83,6 +78,9 @@ If you want to always load the extension on start (and you do, yes you do) add
  --extensions Playground
  ```
  into your webui.py
+ 
+ ## Perma memory
+ 
  
 ## To Do (perhaps, perhaps not)
 - add syntax to switch between loaded LoRAs

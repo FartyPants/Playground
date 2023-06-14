@@ -87,8 +87,8 @@ Add three freely switchable perma-memory spots. Perma memory is something that i
 Together with Limit Memory this can finetune the LLM context. 
 Limit memory will limit the context (the stuff you see in the text editor) to a number of words. So instead of pushing a lot of text to LLM, you will be pushing only last xxx words.
 The flow is : 
-Perma-Memory
-limit memory (context)
+- Perma-Memory A, B or C
+- limit memory (context)
 
 That is if you set limit memory to 200 and set memory A, the entire text of Memory A will be pushed to LLM then 200 last words of the context you see on the screen. This keeps the LLM constantly conditioned with the "memory"
  

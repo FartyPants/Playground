@@ -83,6 +83,14 @@ If you want to always load the extension on start (and you do, yes you do) add
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/67bf9bde-f4a8-4f63-b7d0-237861ed5699)
 
+Add three freely switchable perma-memory spots. Perma memory is something that is visible to the model (pre-condition). Think of it as a context but one you don't see in text editor.
+Together with Limit Memory this can finetune the LLM context. 
+Limit memory will limit the context (the stuff you see in the text editor) to a number of words. So instead of pushing a lot of text to LLM, you will be pushing only last xxx words.
+The flow is : 
+Perma-Memory
+limit memory (context)
+
+That is if you set limit memory to 200 and set memory A, the entire text of Memory A will be pushed to LLM then 200 last words of the context you see on the screen. This keeps the LLM constantly conditioned with the "memory"
  
 ## To Do (perhaps, perhaps not)
 - add syntax to switch between loaded LoRAs

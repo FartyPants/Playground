@@ -97,6 +97,9 @@ The templates correspond to how summary is inserted in the generation.
 
 Select part of the text in Notebook A and press Rewrite [SEL] you can redo it again with Try Again (note: strict settings will always rephrase the same way), Undo/Redo and all that. 
 
+![image](https://github.com/FartyPants/Playground/assets/23346289/eebf83c1-a48e-4eb6-a6e6-bf1540fae63b)
+
+
 ## Lora-Rama
 allows applying checkpoints (if you train LoRA, you would know). THis way you can figure out which checkpoint is actually good.
 

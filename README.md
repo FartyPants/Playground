@@ -1,4 +1,4 @@
-# Playground (with a lot of stuff)
+# Playground (with a lots of stuff)
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/24d12ec5-fc3d-478a-9428-71dd3d3ab455)

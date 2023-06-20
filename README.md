@@ -112,8 +112,6 @@ The templates correspond to how summary is inserted in the generation.
 
 ## Paraphrase
 
-![image](https://github.com/FartyPants/Playground/assets/23346289/c51eaee3-45db-4293-85d1-c138464bc160)
-
 Select part of the text in Notebook A and press Rewrite [SEL] you can redo it again with Try Again (note: strict settings will always rephrase the same way), Undo/Redo and all that. 
 
 ## Lora-Rama

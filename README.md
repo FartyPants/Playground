@@ -1,4 +1,4 @@
-# Playground (with perma-memory)
+# Playground (with a lot of stuff)
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/bb9899f0-b3dd-4b9a-8f4e-ba168c95484d)
@@ -8,6 +8,10 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - you can type in one while the other is generating.
 - Quick instruct syntax
 - Select and Insert - generate text in the middle of your text
+- Perma Memory
+- Summarization and ability to inject summary
+- Paraphrasing
+- Lora-Rama - to test various checkpoints when using LORA
 
 ## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)
@@ -98,8 +102,28 @@ Switch between loaded LORAs
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/907c6fe3-d6d8-47d4-b515-c49406cb1eb7)
 
+## Summarize
 
-## That's all
+![image](https://github.com/FartyPants/Playground/assets/23346289/e526821c-d551-4e04-a7bb-1289dc41feb9)
+
+You can either have it summarize text that is written in Notebook A, or simply put your own summary.
+The summary can be then injected to the LLM as a sort of "memory"
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/dd1020bd-f307-4aec-bd5e-ae717ddcf8e5)
+
+## Paraphrase
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/c51eaee3-45db-4293-85d1-c138464bc160)
+
+Select part of the text in Notebook A and press Rewrite. 
+
+## Lora-Rama
+allows applying checkpoints (if you train LoRA, you would know). THis way you can figure out which checkpoint is actually good.
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/ba34b9ce-333e-47f9-a1f8-348e4ecea3d1)
+
+
+## That's all for now
 Am I clever or what? Let me ask my gently fine-tuned bot:
 ```
 --- Am I clever or what?

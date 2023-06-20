@@ -79,12 +79,6 @@ The flow is :
 
 That is if you set limit memory to 200 and set memory A, the entire text of Memory A will be pushed to LLM then 200 last words of the context you see on the screen. This keeps the LLM constantly conditioned with the "memory"
  
-## LORA switch
-
-Switch between loaded LORAs
-
-![image](https://github.com/FartyPants/Playground/assets/23346289/907c6fe3-d6d8-47d4-b515-c49406cb1eb7)
-
 ## Summarize
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/e526821c-d551-4e04-a7bb-1289dc41feb9)
@@ -104,6 +98,11 @@ Select part of the text in Notebook A and press Rewrite [SEL] you can redo it ag
 allows applying checkpoints (if you train LoRA, you would know). THis way you can figure out which checkpoint is actually good.
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/ba34b9ce-333e-47f9-a1f8-348e4ecea3d1)
+
+## LORA switch
+
+Switch between loaded LORAs (if you stack LoRA's in the Model tab)
+
 
 # Installation to your ooba
 The extension can be installed by cloning this repository inside the ../text-generation-webui/extensions folder:

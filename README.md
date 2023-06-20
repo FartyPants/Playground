@@ -65,23 +65,6 @@ So you have both the instruct mode AND the flexibility of notebook.
 
 Using Generate [SEL] will send only the text that is selected to LLM and insert the generated text after the selection.
 You will love this.
-
-## Installation to your ooba
-The extension can be installed by cloning this repository inside the ../text-generation-webui/extensions folder:
-
-```
-cd PATH_TO_text-generation-webui/extensions
-```
-then clone this repo
-```
-git clone https://github.com/FartyPants/Playground
-```
-
-If you want to always load the extension on start (and you do, yes you do) add
-```
- --extensions Playground
- ```
- into your webui.py
  
  ## Perma memory
 
@@ -118,6 +101,23 @@ Select part of the text in Notebook A and press Rewrite [SEL] you can redo it ag
 allows applying checkpoints (if you train LoRA, you would know). THis way you can figure out which checkpoint is actually good.
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/ba34b9ce-333e-47f9-a1f8-348e4ecea3d1)
+
+# Installation to your ooba
+The extension can be installed by cloning this repository inside the ../text-generation-webui/extensions folder:
+
+```
+cd PATH_TO_text-generation-webui/extensions
+```
+then clone this repo
+```
+git clone https://github.com/FartyPants/Playground
+```
+
+If you want to always load the extension on start (and you do, yes you do) add
+```
+ --extensions Playground
+ ```
+ into your webui.py
 
 
 ## That's all for now

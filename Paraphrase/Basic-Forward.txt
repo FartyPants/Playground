@@ -1,0 +1,4 @@
+<|nextcontext|>
+<|user|> Use memory from the the previous text. Rewrite the following text:
+<|context|>
+<|bot|>

@@ -1,0 +1,4 @@
+<|prevcontext|>
+<|user|> Rewrite the following text. Make sure to correctly place quotes in the rewritten text:
+<|context|>
+<|bot|>

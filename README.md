@@ -109,8 +109,6 @@ Switch between loaded LORAs
 You can either have it summarize text that is written in Notebook A, or simply put your own summary.
 The summary can be then injected to the LLM as a sort of "memory"
 
-![image](https://github.com/FartyPants/Playground/assets/23346289/dd1020bd-f307-4aec-bd5e-ae717ddcf8e5)
-
 ## Paraphrase
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/c51eaee3-45db-4293-85d1-c138464bc160)

@@ -573,7 +573,7 @@ def ui():
                             lorasub = gr.Radio(choices='', value=shared.lora_names, label='Checkpoints')
                             
                         with gr.Row():
-                            displaytext = gr.Markdown(value='',show_progress=False)
+                            displaytext = gr.Markdown(value='')
                             lora_apply = gr.Button(value='Apply', elem_classes='small-button')
                 with gr.Tab('Perma-Memory'):
                     with gr.Column():
@@ -679,10 +679,12 @@ def ui():
 
     def save_pickle():
         global params
-        with open(file_nameJSON, 'w') as json_file:
-            json.dump(params, json_file,indent=2)
-            print(f"Saved: {file_nameJSON}")
- 
+        try:
+            with open(file_nameJSON, 'w') as json_file:
+                json.dump(params, json_file,indent=2)
+                print(f"Saved: {file_nameJSON}")
+        except IOError as e:
+            print(f"An error occurred while saving the file: {e}")  
     
     def update_activate(x):
         global params

@@ -13,11 +13,17 @@ from modules.LoRA import add_lora_to_model
 import re
 import json
 import os
+from peft.utils.config import PeftConfig
+from peft.utils.config import PeftConfigMixin
 
 right_symbol = '\U000027A1'
 left_symbol = '\U00002B05'
 refresh_symbol = '\U0001f504'  # 🔄
 
+# Save the original method
+original_from_from_json_file = PeftConfig.from_pretrained
+g_lora_multipolier = 1.0
+g_print_twice = False
 
 defaultTemp_keys = ['summary_turn', 'summary_include_turn', 'summary_include_turn2']
 
@@ -29,6 +35,10 @@ defaultTemp = {
 
 
 }
+
+selected_lora_main_sub =''
+selected_lora_main =''
+selected_lora_sub = ''
 
 paraph_undo = ''
 paraph_undoSEL = [0,0]
@@ -464,7 +474,7 @@ def get_available_LORA():
     prior_set = ['None']
     if hasattr(shared.model,'peft_config'):
         for adapter_name in shared.model.peft_config.items():
-            print(f"Found adapter: {adapter_name[0]}")
+            print(f"Loaded adapters in model: {adapter_name[0]}")
             prior_set.append(adapter_name[0])
 
     return prior_set      
@@ -488,12 +498,57 @@ def set_LORA(item):
 def get_available_loras():
     return sorted([item.name for item in list(Path(shared.args.lora_dir).glob('*')) if not item.name.endswith(('.txt', '-np', '.pt', '.json'))], key=natural_keys)
 
+# get LORAS sorted by date
+def get_available_loras_sorted_by_date():
+	return sorted([item.name for item in list(Path(shared.args.lora_dir).glob('*')) if not item.name.endswith(('.txt', '-np', '.pt', '.json'))], key=os.path.getmtime, reverse=True)
+
+def from_json_file(cls, path_json_file, **kwargs):
+    global g_print_twice
+    
+    with open(path_json_file, "r") as file:
+        json_object = json.load(file)
+
+        
+        lora_alpha_value = int(json_object.get("lora_alpha", 1))
+        lora_rank = int(json_object.get("r", 1))
+        
+        if lora_rank==0:
+            lora_rank = 1
+
+
+        scaling = lora_alpha_value/ lora_rank
+       
+        newalpha = int(lora_alpha_value * g_lora_multipolier)
+        newscaling = newalpha/ lora_rank
+
+        if lora_alpha_value==newalpha:
+            if g_print_twice == False:
+                print(f"Default Scaling: {scaling}")
+                print(f"Alpha: {lora_alpha_value} / Rank: {lora_rank}")
+                
+        else:
+            if g_print_twice == False:
+                print("\033[91mPatching LORA adapter\033[0m")
+                print(f"Scaling: {scaling} -> {newscaling}")
+                print(f"Alpha: {lora_alpha_value} -> {newalpha} / Rank: {lora_rank}")
+                
+
+            json_object["lora_alpha"] = newalpha
+    
+    g_print_twice = True
+    return json_object
+
+
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
     #interface_state = gr.State({k: None for k in input_elements})
 
+
+
     global params
-    global selected_lora
+    global selected_lora_main_sub
+    global selected_lora_main
+    global selected_lora_sub
     model_name = getattr(shared.model,'active_adapter','None')
 
     for key in defaultTemp_keys:
@@ -570,11 +625,19 @@ def ui():
                             loramenu = gr.Dropdown(multiselect=False, choices=get_available_loras(), value=shared.lora_names, label='LoRA and checkpoints', elem_classes='slim-dropdown')
                             create_refresh_button(loramenu, lambda: None, lambda: {'choices': get_available_loras(), 'value': shared.lora_names}, 'refresh-button')
                         with gr.Row():                            
-                            lorasub = gr.Radio(choices='', value=shared.lora_names, label='Checkpoints')
-                            
+                            lorasub2 = gr.Radio(choices=[], value=selected_lora_sub, label='Checkpoints')
+                        with gr.Row():  
+                            with gr.Column():
+                                #gr_displaytextMK = gr.HTML('') 
+                                gr_displayLine = gr.Textbox(value='',lines=1,interactive=False,label='Training Log')
+                                lora_monkey = gr.Button(value='Allow changing LoRA Scaling')
+                                lora_monkey_multiply = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA Scaling Coefficient", value=1.0, interactive=False)
+                        with gr.Row():                                
+                            lora_monkey_apply = gr.Button(value='Apply LoRA', variant="primary")
                         with gr.Row():
-                            displaytext = gr.Markdown(value='')
-                            lora_apply = gr.Button(value='Apply', elem_classes='small-button')
+                            line_text = gr.Markdown(value='Ready')
+                             
+
                 with gr.Tab('Perma-Memory'):
                     with gr.Column():
                         text_MEMA = gr.Textbox(value=params['memoryA'], lines=5, label='Memory A')
@@ -808,54 +871,176 @@ def ui():
 
     gr_Loralmenu.change(set_LORA,gr_Loralmenu,None)
 
+    #sort in natural order reverse
     def list_subfolders(directory):
         subfolders = []
-        subfolders.append('None')
+        subfolders.append('Final')
         for entry in os.scandir(directory):
          
             if entry.is_dir() and entry.name != 'runs':
                 subfolders.append(entry.name)
 
-        return subfolders
+
+        return sorted(subfolders, key=natural_keys, reverse=True)
 
     def path_from_selected(selectlora,selectsub):
-        if selectsub and selectsub!='None':
+
+        if selectsub=='':
+            selectsub = 'Final'
+
+        if selectsub and selectsub!='Final':
             return f"{selectlora}/{selectsub}"
         
         return f"{selectlora}"
 
    
     def apply_lora(selectlora,selectsub):
-        global selected_lora
+        global selected_lora_main_sub
         path = path_from_selected(selectlora,selectsub)   
-        selected_lora = path
-        yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora}"),(f"Applying the following LoRA to {shared.model_name} : {selected_lora}")
-        add_lora_to_model([selected_lora])
-        if len(shared.lora_names)>0:
-            yield ("Successfuly applied the LoRA"),("Successfuly applied the LoRA")   
+        selected_lora_main_sub = path
+        if shared.model_name!='None' and shared.model_name!='':
+            yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}"),(f"Applying the following LoRA to {shared.model_name} : {selected_lora_main_sub}")
+            add_lora_to_model([selected_lora_main_sub])
+
+            if len(shared.lora_names)>0:
+                yield ("Successfuly applied the LoRA"),("Successfuly applied the LoRA")   
+            else:
+                yield ("Lora failed..."),("LoRA failed") 
         else:
-            yield ("Lora failed..."),("LoRA failed")       
+            yield ('No Model loaded...'),("No Model Loaded") 
 
-    def update_lotra_subs(selectlora):
+    def apply_lora_can_be_same(selectlora,selectsub):
+        global selected_lora_main_sub
+        global g_print_twice
+        g_print_twice = False
+        path = path_from_selected(selectlora,selectsub)
+        lora_path = Path(f"{shared.args.lora_dir}/{path}")
+        selected_lora_main_sub = path
 
+        if os.path.isdir(lora_path):
+               
+            if shared.model_name!='None' and shared.model_name!='':
+                yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
+
+                shared.lora_names = []
+                            
+                if 'GPTQForCausalLM' in shared.model.__class__.__name__:
+                    print("LORA -> AutoGPTQ")
+                elif shared.model.__class__.__name__ == 'ExllamaModel':
+                    print("LORA -> Exllama")
+                else:
+                            # shared.model may no longer be PeftModel
+                    print("LORA -> Transformers")                        
+                    if hasattr(shared.model, 'disable_adapter'):  
+                        shared.model.disable_adapter()  
+                        shared.model = shared.model.base_model.model
+
+                add_lora_to_model([selected_lora_main_sub])
+                    
+                if len(shared.lora_names)>0:
+                    yield "Successfuly applied the LoRA"   
+                else:
+                    yield "Lora failed..." 
+            else:
+                yield 'No Model loaded...' 
+          
+
+    def update_lotra_subs_main(selectlora):
+        global selected_lora_main
+        global selected_lora_sub 
+        selected_lora_main = ''
+        selected_lora_sub = ''   
         if selectlora:
             model_dir = f"{shared.args.lora_dir}/{selectlora}"  # Update with the appropriate directory path
+            selected_lora_main = selectlora
             subfolders = list_subfolders(model_dir)
-            return gr.Radio.update(choices=subfolders,value='None') 
+            return gr.Radio.update(choices=subfolders, value ='Final') 
 
-        return gr.Radio.update(choices=[],value='')    
+        return gr.Radio.update(choices=[], value ='')    
 
     def update_activeAdapters():
         return gr.Radio.update(choices=get_available_LORA(), value= getattr(shared.model, 'active_adapter', None))
 
+ # log is my recent PR
+    def load_log():
+        
+        path = path_from_selected(selected_lora_main,selected_lora_sub)
+        full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
+
+        str_out = ''
+        table_html = '<table>'
+
+        try:
+            with open(full_path, 'r') as json_file:
+                new_params = json.load(json_file)
+                keys_to_include = ['loss', 'learning_rate', 'epoch', 'current_steps']
+ 
+                row_one = '<tr>'
+                row_two = '<tr>'
+                for key, value in new_params.items():
+                    if key in keys_to_include:
+                        # Create the first row with keys
+                        
+                        row_one += f'<th style="border: 1px solid gray; padding: 8px;">{key}</th>'
+                        value = new_params.get(key, '')
+                        if isinstance(value, float) and value < 0:
+                            value = f'{value:.1e}'
+                        elif isinstance(value, float):
+                            value = f'{value:.2}'
+
+                        row_two += f'<td style="border: 1px solid gray; padding: 8px;">{value}</td>'
+                        
+                        str_out+=f"{key}: {value}    "
+
+                row_one += '</tr>'        
+                row_two += '</tr>'
+                table_html += row_one + row_two + '</table>'        
+
+        except FileNotFoundError:
+               table_html='No log provided'
+               str_out='No log provided'
+
+        return str_out,"Selection changed, Press Apply"
+
     #loramenu, lambda: None, lambda: {'choices': get_available_loras(), 'value': shared.lora_namesgr_Loralmenu
-    loramenu.change(update_lotra_subs,loramenu, lorasub)
-    lora_apply.click(apply_lora,[loramenu, lorasub],[displaytext,shared.gradio['model_status']]).then(lambda : selected_lora,None, shared.gradio['lora_menu']).then(
-        update_activeAdapters,None, gr_Loralmenu)
+   
+    loramenu.change(update_lotra_subs_main,loramenu, lorasub2).then(load_log,None,[gr_displayLine,line_text], show_progress=False) 
+
+
+    #lora_apply.click(apply_lora,[loramenu, lorasub2],[gr_displaytextMK,shared.gradio['model_status']]).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
+    #    update_activeAdapters,None, gr_Loralmenu)
+   
+    def update_lotra_sub(sub):
+        global selected_lora_sub
+        selected_lora_sub = sub
+        
+
+
+    lorasub2.change(update_lotra_sub, lorasub2, None ).then(load_log,None,[gr_displayLine,line_text], show_progress=False)   
     
+    def enable_LORA_monkey():
+        PeftConfig.from_json_file = classmethod(from_json_file)
+        print("[FP] PEFT monkey patch")
+        return gr.Slider.update(interactive=True),gr.Button.update(visible=False)
+
+    lora_monkey.click(enable_LORA_monkey,None,[lora_monkey_multiply,lora_monkey])
+
+    def change_multiplier(multipl):
+        global g_lora_multipolier
+        g_lora_multipolier = float(multipl)
+        
+
+    lora_monkey_multiply.change(change_multiplier,lora_monkey_multiply,None)
+    lora_monkey_multiply.release(change_multiplier,lora_monkey_multiply,None).then(lambda: "LORA Scaling changed, press Apply",None,line_text)
+
+    lora_monkey_apply.click(apply_lora_can_be_same,[loramenu, lorasub2],line_text).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
+        update_activeAdapters,None, gr_Loralmenu)
+
     #lorasub.change(path_from_selected,[loramenu,lorasub],displaytext)
 
  
 
 
-
+# monkey patch peft from peft.utils import PeftConfigMixin
+#def new_from_pretrained(cls, pretrained_model_name_or_path, subfolder=None, **kwargs):
+#PeftConfigMixin.from_pretrained = classmethod(new_from_pretrained)

@@ -12,6 +12,7 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - Summarization and ability to inject summary
 - Paraphrasing
 - Lora-Rama - to test various checkpoints when using LORA
+- Ability to scale LoRA (attenuate LoRA's impact)
 
 ## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)
@@ -99,10 +100,18 @@ allows applying checkpoints (if you train LoRA, you would know). THis way you ca
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/ba34b9ce-333e-47f9-a1f8-348e4ecea3d1)
 
+## Loar Scaling Coeficient (experimental)
+Attenuate the LoRA's impact.
+- first you need to click the button above to monkeypatch PEFT
+- whenever you move the slider you need to use APPLY
+- This is scaling coefficient, not an absolute value: new LoRA scaling = old_LoRA scaling * this_coefficient
+- You can scele down (scaling up is mostly useless as it quickly started producing giberrish so I didn't included it), but scaling down works well.
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/158ed795-70bf-420a-890f-3b6f7ca42581)
+
 ## LORA switch
 
-Switch between loaded LORAs (if you stack LoRA's in the Model tab)
-
+Switch between loaded LORAs (if you stack LoRA's in the Model tab, you can then quickly switch between them) Loading new LoRA takes only a few sec anyway, so I wouldn't bother...
 
 # Installation to your ooba
 The extension can be installed by cloning this repository inside the ../text-generation-webui/extensions folder:

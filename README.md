@@ -97,7 +97,6 @@ Select part of the text in Notebook A and press Rewrite [SEL] you can redo it ag
 
 ## Lora-Rama
 allows applying checkpoints (if you train LoRA, you would know). THis way you can figure out which checkpoint is actually good.
-Note, in new update those checkpoints are sorted properly - not like on the picture
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/30bfb9ee-cb40-4740-b888-bae1967aa1a1)
 

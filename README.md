@@ -101,14 +101,15 @@ Note, in new update those checkpoints are sorted properly - not like on the pict
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/ba34b9ce-333e-47f9-a1f8-348e4ecea3d1)
 
-## Loar Scaling Coeficient (experimental)
+## LoRA Scaling Coeficient (experimental)
 Attenuate the LoRA's impact.
 - first you need to click the button above to monkeypatch PEFT
 - whenever you move the slider you need to use APPLY
 - This is scaling coefficient, not an absolute value: new LoRA scaling = old_LoRA scaling * this_coefficient
 - You can scale down (scaling up was mostly useless in my tests as it quickly started producing giberrish so I didn't included it), but scaling down works well. Put it to 0.5 and the lora will have 50% of impact.
 
-![image](https://github.com/FartyPants/Playground/assets/23346289/158ed795-70bf-420a-890f-3b6f7ca42581)
+![image](https://github.com/FartyPants/Playground/assets/23346289/ec280d78-8835-4ab1-9925-7783c52cf32a)
+
 
 ## LORA switch
 

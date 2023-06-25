@@ -65,7 +65,8 @@ params = {
         "text_Summary":'',
         "paraph_templ_sel":'Basic',
         "paraph_templ_text":'',
-        "paraph_temperament":'Strict'
+        "paraph_temperament":'Strict',
+        "list_by_time":False
     }
 
 file_nameJSON = "playground.json"
@@ -100,7 +101,7 @@ default_req_params = {
     'mirostat_eta': 0.1,
     'ban_eos_token': False,
     'skip_special_tokens': True,
-    'custom_stopping_strings': [],
+    'custom_stopping_strings': '',
 }
 
 temeraments = ['Strict','Low','Moderate','Creative','Inventive','Crazy']
@@ -496,12 +497,42 @@ def set_LORA(item):
                     print (f"[Enable] Adapter layers")  
                 
             
-def get_available_loras():
+def get_available_loras_alpha():
     return sorted([item.name for item in list(Path(shared.args.lora_dir).glob('*')) if not item.name.endswith(('.txt', '-np', '.pt', '.json'))], key=natural_keys)
 
-# get LORAS sorted by date
-def get_available_loras_sorted_by_date():
-	return sorted([item.name for item in list(Path(shared.args.lora_dir).glob('*')) if not item.name.endswith(('.txt', '-np', '.pt', '.json'))], key=os.path.getmtime, reverse=True)
+
+def list_subfoldersByTime(directory):
+
+    if not directory.endswith('/'):
+        directory += '/'
+    subfolders = []
+    path = directory
+    name_list = os.listdir(path)
+    full_list = [os.path.join(path,i) for i in name_list]
+    time_sorted_list = sorted(full_list, key=os.path.getmtime,reverse=True)
+
+    for entry in time_sorted_list:
+        if os.path.isdir(entry):
+            entry_str = f"{entry}"  # Convert entry to a string
+            full_path = entry_str
+            entry_str = entry_str.replace('\\','/')
+            entry_str = entry_str.replace(f"{directory}", "")  # Remove directory part
+            subfolders.append(entry_str)
+
+    return subfolders
+
+
+def get_available_loras():
+    model_dir = shared.args.lora_dir 
+       
+    subfolders = []
+    if params.get("list_by_time",False):
+        subfolders = list_subfoldersByTime(model_dir)
+    else:
+        subfolders = get_available_loras_alpha()      
+
+    return subfolders      
+
 
 def from_json_file(cls, path_json_file, **kwargs):
     global g_print_twice
@@ -622,9 +653,14 @@ def ui():
                         htmlB = gr.HTML()
                 with gr.Tab('LoRA-Rama'):
                     with gr.Column():
+                        
                         with gr.Row():
-                            loramenu = gr.Dropdown(multiselect=False, choices=get_available_loras(), value=shared.lora_names, label='LoRA and checkpoints', elem_classes='slim-dropdown')
-                            create_refresh_button(loramenu, lambda: None, lambda: {'choices': get_available_loras(), 'value': shared.lora_names}, 'refresh-button')
+                            with gr.Column(scale=5):    
+                                with gr.Row():
+                                    loramenu = gr.Dropdown(multiselect=False, choices=get_available_loras(), value=shared.lora_names, label='LoRA and checkpoints', elem_classes='slim-dropdown')
+                                    create_refresh_button(loramenu, lambda: None, lambda: {'choices': get_available_loras(), 'value': shared.lora_names}, 'refresh-button')
+                            with gr.Column(scale=1):
+                                lora_list_by_time = gr.Checkbox(value = params["list_by_time"],label="Sort by Time added",info="Sorting")
                         with gr.Row():                            
                             lorasub2 = gr.Radio(choices=[], value=selected_lora_sub, label='Checkpoints')
                         with gr.Row():  
@@ -1038,6 +1074,15 @@ def ui():
         update_activeAdapters,None, gr_Loralmenu)
 
     #lorasub.change(path_from_selected,[loramenu,lorasub],displaytext)
+
+    def change_sort(sort):
+        global params
+        params.update({"list_by_time": sort})
+        save_pickle()
+ 
+    def update_reloadLora():
+        return gr.Radio.update(choices=get_available_loras())
+    lora_list_by_time.change(change_sort,lora_list_by_time,None).then(update_reloadLora,None, loramenu)
 
  
 

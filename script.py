@@ -353,7 +353,7 @@ def generate_paraphrase(question, state,selectState,paraphrase, summary):
 
     #prompt = generate_prompt(prompt,summary)   
 
-    for reply in generate_reply(prompt, summary_state, eos_token = None, stopping_strings=None, is_chat=False):
+    for reply in generate_reply(prompt, summary_state, stopping_strings=None, is_chat=False):
         params[selectState][1] = selF+len(reply)
         reply = before+reply+after
         yield formatted_outputs(reply)
@@ -404,7 +404,7 @@ def generate_reply_wrapperMYSEL(question, state,selectState,summary):
                 current+="\n"
 
     prompt = generate_prompt(current,summary)   
-    for reply in generate_reply(prompt, state, eos_token = None, stopping_strings=None, is_chat=False):
+    for reply in generate_reply(prompt, state, stopping_strings=None, is_chat=False):
         if hasattr(shared, 'is_seq2seq') and not shared.is_seq2seq:
             reply = current + reply
         reply = before+reply+after
@@ -438,7 +438,8 @@ def generate_reply_wrapperMY(question, state, selectState,summary):
 
     prompt = generate_prompt(question,summary)           
 
-    for reply in generate_reply(prompt, state, eos_token = None, stopping_strings=None, is_chat=False):
+
+    for reply in generate_reply(prompt, state, stopping_strings=None, is_chat=False):
         if hasattr(shared, 'is_seq2seq') and not shared.is_seq2seq:
             reply = question + reply
 
@@ -464,7 +465,7 @@ def generate_summary(inptext, state, selectState):
     prompt = prompt.replace('<|user|>', user)
     prompt = prompt.replace('<|bot|>', bot)
 
-    for reply in generate_reply(prompt, summary_state, eos_token = None, stopping_strings=None, is_chat=False):
+    for reply in generate_reply(prompt, summary_state, stopping_strings=None, is_chat=False):
         yield formatted_outputs(reply)
 
 def get_available_LORA():

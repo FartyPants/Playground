@@ -39,6 +39,7 @@ defaultTemp = {
 selected_lora_main_sub =''
 selected_lora_main =''
 selected_lora_sub = ''
+editing_note = False
 
 paraph_undo = ''
 paraph_undoSEL = [0,0]
@@ -666,7 +667,9 @@ def ui():
                         with gr.Row():  
                             with gr.Column():
                                 #gr_displaytextMK = gr.HTML('') 
-                                gr_displayLine = gr.Textbox(value='',lines=1,interactive=False,label='Training Log')
+                                with gr.Row():
+                                    gr_displayLine = gr.Textbox(value='',lines=2,interactive=False,label='Training Log')
+                                    gr_dispLineEdit = gr.Button(value='Note', elem_classes='refresh-button')
                                 lora_monkey = gr.Button(value='Allow changing LoRA Scaling')
                                 lora_monkey_multiply = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA Scaling Coefficient", value=1.0, interactive=False)
                         with gr.Row():                                
@@ -725,7 +728,7 @@ def ui():
                             gr_Loralmenu = gr.Radio(choices=get_available_LORA(), value=model_name, label='Activate Loaded LORA adapters', interactive=True)
                             create_refresh_button(gr_Loralmenu, lambda: None, lambda: {'choices': get_available_LORA(),'value': getattr(shared.model, 'active_adapter', None)}, 'refresh-button')      
                         with gr.Row():                            
-                            gr.Markdown('v 6.20 by FPHam https://github.com/FartyPants/Playground')    
+                            gr.Markdown('v 6.25 by FPHam https://github.com/FartyPants/Playground')    
 
 
     selectStateA = gr.State('selectA')
@@ -911,12 +914,14 @@ def ui():
     #sort in natural order reverse
     def list_subfolders(directory):
         subfolders = []
-        subfolders.append('Final')
-        for entry in os.scandir(directory):
-         
-            if entry.is_dir() and entry.name != 'runs':
-                subfolders.append(entry.name)
+        
+        if os.path.isdir(directory):
+            
+            subfolders.append('Final')
 
+            for entry in os.scandir(directory):
+                if entry.is_dir() and entry.name != 'runs':
+                    subfolders.append(entry.name)
 
         return sorted(subfolders, key=natural_keys, reverse=True)
 
@@ -1001,9 +1006,13 @@ def ui():
  # log is my recent PR
     def load_log():
         
+        if selected_lora_main=='':
+            return "None","Select LoRA"
+
         path = path_from_selected(selected_lora_main,selected_lora_sub)
         full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
 
+        str_noteline = ''
         str_out = ''
         table_html = '<table>'
 
@@ -1015,6 +1024,10 @@ def ui():
                 row_one = '<tr>'
                 row_two = '<tr>'
                 for key, value in new_params.items():
+
+                    if key=='note':
+                        str_noteline = f"\nNote: {value}"
+
                     if key in keys_to_include:
                         # Create the first row with keys
                         
@@ -1037,7 +1050,7 @@ def ui():
                table_html='No log provided'
                str_out='No log provided'
 
-        return str_out,"Selection changed, Press Apply"
+        return str_out+str_noteline,"Selection changed, Press Apply"
 
     #loramenu, lambda: None, lambda: {'choices': get_available_loras(), 'value': shared.lora_namesgr_Loralmenu
    
@@ -1084,7 +1097,67 @@ def ui():
         return gr.Radio.update(choices=get_available_loras())
     lora_list_by_time.change(change_sort,lora_list_by_time,None).then(update_reloadLora,None, loramenu)
 
- 
+    def edit_note(line):
+        global editing_note
+        editing_note = not editing_note
+        note = ''
+
+        if selected_lora_main=='':
+            return "No LoRA loaded",gr.Button.update(value='Note', variant='secondary')
+
+        path = path_from_selected(selected_lora_main,selected_lora_sub)
+        full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
+        if editing_note:
+
+            #load Note
+            note = 'Write a note here...'
+            try:
+                with open(full_path, 'r') as json_file:
+                    new_params = json.load(json_file)
+                    
+                    for key, value in new_params.items():
+                        if key=='note':
+                            note = f"{value}"
+
+            except FileNotFoundError:
+                pass 
+
+            return gr.Textbox.update(interactive=True, value = note),gr.Button.update(value='Save', variant='primary')
+        else:
+
+            #load log
+            resave_new = {}
+            try:
+                with open(full_path, 'r') as json_file:
+                    new_params = json.load(json_file)
+                    
+                    for item in new_params:
+                        resave_new[item] = new_params[item]
+
+            except FileNotFoundError:
+                pass 
+
+
+            line_str = f"{line}"        
+            if line_str != 'Write a note here...':
+                resave_new.update({"note": line_str})        
+                #save    
+                if len(resave_new)>0:     
+                    try:
+                        with open(full_path, 'w') as json_file:
+                            json.dump(resave_new, json_file,indent=2)
+                            print(f"Saved: {full_path}")
+                    except IOError as e:
+                        print(f"An error occurred while saving the file: {e}")  
+
+
+            # reload again
+            note, nothing = load_log()
+            return gr.Textbox.update(interactive=False,value = note),gr.Button.update(value='Note', variant='secondary')
+
+
+
+    gr_dispLineEdit.click(edit_note,gr_displayLine,[gr_displayLine,gr_dispLineEdit])
 
 
 # monkey patch peft from peft.utils import PeftConfigMixin

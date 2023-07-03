@@ -114,6 +114,19 @@ Attenuate the LoRA's impact.
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/ec280d78-8835-4ab1-9925-7783c52cf32a)
 
+## Merge (stack) Two Lora's
+
+- works on Transformers models (or gptq-for-llama) that uses PEFT
+- go to tab Model and add two LoRAs
+- go back to playground and refresh the Activate LoRA...
+
+  ![image](https://github.com/FartyPants/Playground/assets/23346289/1d7c35be-28ef-4db5-b5c2-e33d8fe16fd9)
+
+You should have two adapters listed.
+Now you can merge them to a third adapter by using weight sliders
+
+![image](https://github.com/FartyPants/Playground/assets/23346289/cf6833a6-336d-4227-a819-3cfe39d400f7)
+
 
 ## LORA switch
 

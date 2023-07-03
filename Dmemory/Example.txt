@@ -1,0 +1,6 @@
+Example of Dynamic memory
+
+Each block divided by an empty line is a memory that can be injected to the LLM if any of the keywords are used. The keyword is a word that starts with hash tag. You can use the keywords within the text or simply put them, at the beginning of block.
+
+#age 
+Vicky is 23 years old. Her #hair is blue.

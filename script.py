@@ -40,6 +40,7 @@ selected_lora_main_sub =''
 selected_lora_main =''
 selected_lora_sub = ''
 editing_note = False
+g_original_lora_rank = 0
 
 paraph_undo = ''
 paraph_undoSEL = [0,0]
@@ -67,7 +68,9 @@ params = {
         "paraph_templ_sel":'Basic',
         "paraph_templ_text":'',
         "paraph_temperament":'Strict',
-        "list_by_time":False
+        "list_by_time":False,
+        "dyn_templ_sel": 'None',
+        "dyn_templ_text":''
     }
 
 file_nameJSON = "playground.json"
@@ -196,6 +199,10 @@ def get_available_templates():
     paths = (x for x in Path('extensions/Playground/Paraphrase').iterdir() if x.suffix in ('.txt'))
     return ['None'] + sorted(set((k.stem for k in paths)), key=natural_keys)
 
+def get_available_dyna_templates():
+    paths = (x for x in Path('extensions/Playground/Dmemory').iterdir() if x.suffix in ('.txt'))
+    return ['None'] + sorted(set((k.stem for k in paths)), key=natural_keys)
+
 def get_file_path(folder, filename):
     basepath = "extensions/Playground/"+folder
     #print(f"Basepath: {basepath} and {filename}")
@@ -215,6 +222,15 @@ def read_file_to_string(file_path):
 
     return data
 
+def save_string_to_file(file_path, string):
+    try:
+        with open(file_path, 'w') as file:
+            file.write(string)
+        print("String saved to file successfully.")
+    except Exception as e:
+        print("Error occurred while saving string to file:", str(e))
+
+
 def load_Paraphrase_template(file):
     global params
     template = 'Paraphrase the following\n<|context|>'
@@ -227,6 +243,28 @@ def load_Paraphrase_template(file):
     params['paraph_templ_sel'] = file
     params['paraph_templ_text'] = template
     return template
+
+def load_dynamemory_template(file):
+    global params
+    template = ''
+    path = get_file_path('Dmemory',file)
+    
+    if path:
+        print(f"Loading Dynamic Memory: {path}")
+        template = read_file_to_string(path)
+
+    params['dyn_templ_sel'] = file
+    params['dyn_templ_text'] = template
+    return template,file
+
+def save_dynamemory(DYNAMEMORY,DYNAMEMORY_filename):
+    if DYNAMEMORY_filename=='None' or DYNAMEMORY_filename=='':
+        print("File name can't be None")
+    else:    
+        basepath = "extensions/Playground/Dmemory/"+DYNAMEMORY_filename+".txt"
+        save_string_to_file(basepath,DYNAMEMORY)
+
+
 
 def get_last_line(string):
     lines = string.splitlines()
@@ -261,6 +299,29 @@ def generate_prompt(string,summary):
             if addLineReply:
                 modified_string = modified_string + addLineReply
 
+    dynamemory = ''
+    if params['dyn_templ_text']:
+        #dynamemory
+        pairs = parse_DYNAMEMORY(params['dyn_templ_text'])
+        for pair in pairs:
+                if pair["always"]:
+                    # Always inject it.
+                    dynamemory = dynamemory+ pair["memory"]+"\n"
+                else:
+                    # Check to see if keywords are present.
+                    keywords = pair["keywords"].lower().split(",")
+                   
+                    user_input_lower = string.lower()
+                   
+                    for keyword in keywords:
+                        keywordsimp = keyword.strip()
+                        if keywordsimp and keywordsimp in user_input_lower:
+                            # keyword is present in user_input
+                            dynamemory = dynamemory+ pair["memory"]+"\n"
+ 
+        if dynamemory:
+            modified_string = "# Memory: "+ dynamemory+modified_string
+
     memory = ''
     if params['selectedMEM']=='Memory A':
         memory = params['memoryA']  
@@ -277,7 +338,6 @@ def generate_prompt(string,summary):
         else:
             promptSUM = params['summary_include_turn'].replace('\\n', '\n')
             promptSUM = promptSUM.replace('<|summary|>', summary)
-
 
       
         modified_string = promptSUM+modified_string
@@ -537,6 +597,7 @@ def get_available_loras():
 
 def from_json_file(cls, path_json_file, **kwargs):
     global g_print_twice
+    global g_original_lora_rank
     
     with open(path_json_file, "r") as file:
         json_object = json.load(file)
@@ -544,6 +605,7 @@ def from_json_file(cls, path_json_file, **kwargs):
         
         lora_alpha_value = int(json_object.get("lora_alpha", 1))
         lora_rank = int(json_object.get("r", 1))
+        g_original_lora_rank = lora_rank
         
         if lora_rank==0:
             lora_rank = 1
@@ -572,11 +634,86 @@ def from_json_file(cls, path_json_file, **kwargs):
     return json_object
 
 
+def parse_DYNAMEMORY(text):
+    blocks = text.split('\n\n')
+    memories = []
+
+    for block in blocks:
+        keywords = []
+        words = block.split()
+
+        for word in words:
+            if word.startswith('#'):
+                keywords.append(word.strip('#').strip(',').strip('.'))
+
+        block = block.replace('#', '')
+  
+        if keywords:
+            memories.append({
+                'keywords': ','.join(keywords),
+                'memory': block.strip(),
+                'always': False
+            })
+    
+    return memories
+
+def resaveadapter(outputdir):
+    #is peft?
+    if hasattr(shared.model, 'disable_adapter'):  
+        #get_peft_model_state_dict
+        # should be enough?
+        
+        # should change the shared.model.peft_config "r" to the original?
+        # if g_original_lora_rank>0 setattr(config, 'r', value)
+        shared.model.save_pretrained(outputdir)
+        return "Done"  
+    else:
+        return "No LoRA loaded yet"    
+    
+
+def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combined"):
+    print(f"Combine {adapters} with weights {weights} into {adapter_name}")
+    model.add_weighted_adapter(adapters, weights, adapter_name)
+   
+
+def merge_loras(w1,w2):
+    
+    if hasattr(shared.model,'peft_config'):
+        adapters = []
+        for adapter_name in shared.model.peft_config.items():
+            #print(f"Adapters: {adapter_name[0]}")
+            adapters.append(adapter_name[0])
+
+        if len(adapters)>1:
+            nAd = len(adapters)
+            adaptname = f"combined_{nAd}"
+            create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1]], [w1, w2],adaptname)
+            return f"Combined Adapter {adaptname} created"
+        else:
+            return "You need to add 2 LoRA adapters in the model tab (Transformers)"
+    else:
+        return "No LoRA loaded yet"             
+
+def rescale_lora(w1):
+    
+    if hasattr(shared.model,'peft_config'):
+        adapters = []
+        for adapter_name in shared.model.peft_config.items():
+            #print(f"Adapters: {adapter_name[0]}")
+            adapters.append(adapter_name[0])
+
+        if len(adapters)>0:
+            nAd = len(adapters)
+            adaptname = f"rescaled_{nAd}"
+            create_weighted_lora_adapter(shared.model, [adapters[0]], [w1],adaptname)
+            return f"Weighted Adapter {adaptname} created"
+        else:
+            return "You need to add a LoRA adapters in the model tab (Transformers)"
+    else:
+        return "No LoRA loaded yet"       
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
     #interface_state = gr.State({k: None for k in input_elements})
-
-
 
     global params
     global selected_lora_main_sub
@@ -676,6 +813,17 @@ def ui():
                             lora_monkey_apply = gr.Button(value='Apply LoRA', variant="primary")
                         with gr.Row():
                             line_text = gr.Markdown(value='Ready')
+                        with gr.Accordion("Tools", open=False):
+                            with gr.Column():
+                                with gr.Row():
+                                    gr_saveAdapter = gr.Textbox(value='loras/my_saved_adapter',lines=1,label='Dump all Adapter(s) in model to folder:')
+                                    gr_saveAdapterBtn = gr.Button(value='Dump', elem_classes='small-button')
+                            with gr.Column():        
+                                lora_combine_w1 = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA A", value=1.0)    
+                                lora_combine_w2 = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA B", value=1.0)
+                                with gr.Row():
+                                    lora_scale = gr.Button(value='Rescale A')
+                                    lora_merge = gr.Button(value='Quick Merge A + B')
                              
 
                 with gr.Tab('Perma-Memory'):
@@ -716,19 +864,29 @@ def ui():
                             
                         with gr.Row():
                             gr.Markdown('Select some text in Notebook A and press Paraphrase')  
- 
+                with gr.Tab('Dynamic-Memory'):
+                    with gr.Column():
+                        with gr.Row():
+                            dyna_templates_drop  = gr.Dropdown(choices=get_available_dyna_templates(), label='Dynamic Memories', elem_id='character-menu', info='Saved Dynamic Memory.', value='None') #params['dyn_templ_sel']
+                            create_refresh_button(dyna_templates_drop, lambda: None, lambda: {'choices': get_available_dyna_templates()}, 'refresh-button')
+                        with gr.Row():    
+                            text_DYNAMEMORY = gr.Textbox(value='', lines=25, label='Dynamic Memory') #params['dyn_templ_text'],
+                        with gr.Row():
+                            text_DYNAMEMORY_filename = gr.Textbox(value='', lines=1, label='Memory File') #params['dyn_templ_sel']
+                            DYNAMEMORY_btn_save = gr.Button('Save Memory File', elem_classes="small-button")
+                           
             with gr.Row():
                 with gr.Box():
                     with gr.Column():
+                        with gr.Row():
+                            gr_Loralmenu = gr.Radio(choices=get_available_LORA(), value=model_name, label='Activate Loaded LORA adapters', interactive=True)
+                            create_refresh_button(gr_Loralmenu, lambda: None, lambda: {'choices': get_available_LORA(),'value': getattr(shared.model, 'active_adapter', None)}, 'refresh-button')      
                         gr_summarymenu = gr.Radio(choices=['None','Summary'], value='None', label='Insert Summary', interactive=True)
                         gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Insert Perma-Memory', interactive=True)
                         with gr.Row():
                             max_words = gr.Number(label='Limit previous context to last # of words (0 is no limit, 500 is about half page)', value=params['max_words'])                            
-                        with gr.Row():
-                            gr_Loralmenu = gr.Radio(choices=get_available_LORA(), value=model_name, label='Activate Loaded LORA adapters', interactive=True)
-                            create_refresh_button(gr_Loralmenu, lambda: None, lambda: {'choices': get_available_LORA(),'value': getattr(shared.model, 'active_adapter', None)}, 'refresh-button')      
                         with gr.Row():                            
-                            gr.Markdown('v 6.25 by FPHam https://github.com/FartyPants/Playground')    
+                            gr.Markdown('v 7.02 by FPHam https://github.com/FartyPants/Playground')    
 
 
     selectStateA = gr.State('selectA')
@@ -829,6 +987,11 @@ def ui():
     def update_summary_text(x):
         global params
         params.update({"text_Summary": x})
+
+    def update_dynammemory(x):
+        global params
+        params.update({"dyn_templ_text": x})
+
     
     def update_temperament(x):
         global params
@@ -871,6 +1034,15 @@ def ui():
    
     sumarize_btn.click(gather_interface_values, [shared.gradio[k] for k in shared.input_elements], shared.gradio['interface_state']).then(
           generate_summary, inputs=input_summary, outputs= output_summary, show_progress=False)
+
+    #dynamemory *******************************
+    dyna_templates_drop.change(load_dynamemory_template,dyna_templates_drop,[text_DYNAMEMORY,text_DYNAMEMORY_filename]).then(save_pickle,None,None) 
+    
+    def update_reloadDynamem():
+        return gr.Radio.update(choices=get_available_dyna_templates())
+    DYNAMEMORY_btn_save.click(save_dynamemory,[text_DYNAMEMORY,text_DYNAMEMORY_filename],None).then(update_reloadDynamem,None, dyna_templates_drop)
+
+    text_DYNAMEMORY.change(update_dynammemory,text_DYNAMEMORY,None)
 
     #paraphrase
     para_templates_drop.change(load_Paraphrase_template,para_templates_drop,para_template_text).then(save_pickle,None,None) 
@@ -1060,6 +1232,13 @@ def ui():
     #lora_apply.click(apply_lora,[loramenu, lorasub2],[gr_displaytextMK,shared.gradio['model_status']]).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
     #    update_activeAdapters,None, gr_Loralmenu)
    
+    lora_merge.click(merge_loras,[lora_combine_w1,lora_combine_w2],line_text).then(
+        update_activeAdapters,None, gr_Loralmenu)
+    lora_scale.click(rescale_lora,lora_combine_w1,line_text).then(
+        update_activeAdapters,None, gr_Loralmenu)    
+    
+    gr_saveAdapterBtn.click(resaveadapter,gr_saveAdapter,line_text)
+
     def update_lotra_sub(sub):
         global selected_lora_sub
         selected_lora_sub = sub
@@ -1095,6 +1274,7 @@ def ui():
  
     def update_reloadLora():
         return gr.Radio.update(choices=get_available_loras())
+    
     lora_list_by_time.change(change_sort,lora_list_by_time,None).then(update_reloadLora,None, loramenu)
 
     def edit_note(line):

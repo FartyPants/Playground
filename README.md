@@ -14,8 +14,10 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - Perma Memory
 - Summarization and ability to inject summary
 - Paraphrasing
+- Dynamic Memory
 - Lora-Rama - to test various checkpoints when using LORA
 - Ability to scale LoRA (attenuate LoRA's impact)
+- Ability to Rescale or Merge two LoRA's using weights (Transformer model that uses PEFT)
 
 ## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)

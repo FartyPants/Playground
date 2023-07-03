@@ -1181,11 +1181,24 @@ def ui():
         if selected_lora_main=='':
             return "None","Select LoRA"
 
+        str_out=''
+
         path = path_from_selected(selected_lora_main,selected_lora_sub)
         full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
+        full_pathAda = Path(f"{shared.args.lora_dir}/{path}/adapter_config.json")
+        try:
+            with open(full_pathAda, 'r') as json_file:
+                new_params = json.load(json_file)
+                keys_to_include = ['r', 'lora_alpha']
+                for key, value in new_params.items():
+                   
+                    if key in keys_to_include:
+                        value = new_params.get(key, '')
+                        str_out+=f"{key}: {value}    "
+        except FileNotFoundError:
+            str_out=''
 
         str_noteline = ''
-        str_out = ''
         table_html = '<table>'
 
         try:
@@ -1220,7 +1233,8 @@ def ui():
 
         except FileNotFoundError:
                table_html='No log provided'
-               str_out='No log provided'
+               str_out+='(No training log provided)'
+               
 
         return str_out+str_noteline,"Selection changed, Press Apply"
 

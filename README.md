@@ -127,7 +127,7 @@ Now you can merge them to a third adapter by using weight sliders
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/cf6833a6-336d-4227-a819-3cfe39d400f7)
 
-You can dump all adapters to a folder (so you can have the merged adapter as own LoRA) Note: if you are using your model in 4-bit, then the saved LoRA will come up half size of the original loRA
+You can dump all adapters to a folder (this way you can keep the merged adapter as own LoRA) 
 
 ## LORA switch
 

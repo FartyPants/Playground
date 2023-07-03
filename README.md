@@ -129,7 +129,7 @@ Now you can merge them to a third adapter by using weight sliders
 
 Merga works only if the two loras have same rank "r" value.
 
-You can dump all adapters to a folder (this way you can keep the merged adapter as own LoRA) 
+You can dump all adapters to a folder for later
 
 ## LORA switch
 

@@ -4,10 +4,7 @@
 
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
-![image](https://github.com/FartyPants/Playground/assets/23346289/1d510e35-21bf-4f51-8184-e0e77270d9fe)
-
-![image](https://github.com/FartyPants/Playground/assets/23346289/aa123ab5-d734-4e28-9a9e-96de99c3ca1b)
-
+![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 
 ## Features
 - two independent Notebooks that are always present, regardless of the mode

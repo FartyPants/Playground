@@ -6,6 +6,9 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/1d510e35-21bf-4f51-8184-e0e77270d9fe)
 
+![image](https://github.com/FartyPants/Playground/assets/23346289/aa123ab5-d734-4e28-9a9e-96de99c3ca1b)
+
+
 ## Features
 - two independent Notebooks that are always present, regardless of the mode
 - you can type in one while the other is generating.
@@ -18,6 +21,7 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - Lora-Rama - to test various checkpoints when using LORA
 - Ability to scale LoRA (attenuate LoRA's impact)
 - Ability to Rescale or Merge two LoRA's using weights (Transformer model that uses PEFT)
+- Token View
 
 ## Quick instruct
 The notebooks can enable Quick Instruct mode, where --- (three dashes) signal the line is an instruct (and will be hence formatted accordingly to User/bot prompt)

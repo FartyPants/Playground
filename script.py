@@ -15,6 +15,7 @@ import json
 import os
 from peft.utils.config import PeftConfig
 from peft.utils.config import PeftConfigMixin
+from peft.tuners.lora import mark_only_lora_as_trainable
 
 right_symbol = '\U000027A1'
 left_symbol = '\U00002B05'
@@ -35,6 +36,14 @@ defaultTemp = {
 
 
 }
+
+pastel_colors = [
+    "rgba(107,64,216,.3)",
+    "rgba(104,222,122,.4)",
+    "rgba(244,172,54,.4)",
+    "rgba(239,65,70,.4)",
+    "rgba(39,181,234,.4)",
+]
 
 selected_lora_main_sub =''
 selected_lora_main =''
@@ -669,8 +678,78 @@ def resaveadapter(outputdir):
         return "Done"  
     else:
         return "No LoRA loaded yet"    
-    
 
+
+
+'''
+from peft.tuners.lora import LoraLayer, mark_only_lora_as_trainable
+from peft.utils.other import _freeze_adapter, _get_submodules
+from dataclasses import replace
+
+def add_sub_weighted_adapter(model, adapters, weights, adapters_sub, weights_sub, adapter_name: str):
+    if len({model.peft_config[adapter].r for adapter in adapters}) != 1:
+        raise ValueError("All adapters must have the same r value")
+    
+    #use same alpha as r
+    model.peft_config[adapter_name] = replace(
+        model.peft_config[adapters[0]], lora_alpha=model.peft_config[adapters[0]].r
+    )
+
+    model._find_and_replace(adapter_name)
+    mark_only_lora_as_trainable(model.model, model.peft_config[adapter_name].bias)
+    _freeze_adapter(model.model, adapter_name)
+    key_list = [key for key, _ in model.model.named_modules() if "lora" not in key]
+
+   
+    for key in key_list:
+        _, target, _ = _get_submodules(model.model, key)
+        if isinstance(target, LoraLayer):
+            if adapter_name in target.lora_A:
+                target.lora_A[adapter_name].weight.data = target.lora_A[adapter_name].weight.data * 0.0
+                target.lora_B[adapter_name].weight.data = target.lora_B[adapter_name].weight.data * 0.0
+                 # add 
+                for adapter, weight in zip(adapters, weights):
+                    if adapter not in target.lora_A:
+                        continue
+                    target.lora_A[adapter_name].weight.data += (
+                        target.lora_A[adapter].weight.data * weight * target.scaling[adapter]
+                    )
+                    target.lora_B[adapter_name].weight.data += target.lora_B[adapter].weight.data * weight
+
+                 # sub 
+                for adapter, weight in zip(adapters_sub, weights_sub):
+                    if adapter not in target.lora_A:
+                        continue
+                    target.lora_A[adapter_name].weight.data -= (
+                        target.lora_A[adapter].weight.data * weight * target.scaling[adapter]
+                    )
+                    target.lora_B[adapter_name].weight.data -= target.lora_B[adapter].weight.data * weight
+
+
+            elif adapter_name in target.lora_embedding_A:
+                target.lora_embedding_A[adapter_name].data = target.lora_embedding_A[adapter_name].data * 0.0
+                target.lora_embedding_B[adapter_name].data = target.lora_embedding_B[adapter_name].data * 0.0
+                # add 
+                for adapter, weight in zip(adapters, weights):
+                    if adapter not in target.lora_embedding_A:
+                        continue
+                    target.lora_embedding_A[adapter_name].data += (
+                        target.lora_embedding_A[adapter].data * weight * target.scaling[adapter]
+                    )
+                    target.lora_embedding_B[adapter_name].data += target.lora_embedding_B[adapter].data * weight
+
+                 # sub 
+                for adapter, weight in zip(adapters_sub, weights_sub):
+                    if adapter not in target.lora_embedding_A:
+                        continue
+                    target.lora_embedding_A[adapter_name].data += (
+                        target.lora_embedding_A[adapter].data * weight * target.scaling[adapter]
+                    )
+                    target.lora_embedding_B[adapter_name].data += target.lora_embedding_B[adapter].data * weight
+
+'''
+
+# what happens if we use negative weights....?
 def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combined"):
     print(f"Combine {adapters} with weights {weights} into {adapter_name}")
     model.add_weighted_adapter(adapters, weights, adapter_name)
@@ -680,19 +759,38 @@ def merge_loras(w1,w2):
     
     if hasattr(shared.model,'peft_config'):
         adapters = []
+        #print(f"Adapters: {shared.model.peft_config}")
         for adapter_name in shared.model.peft_config.items():
-            #print(f"Adapters: {adapter_name[0]}")
             adapters.append(adapter_name[0])
 
         if len(adapters)>1:
             nAd = len(adapters)
-            adaptname = f"combined_{nAd}"
+            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}"
             create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1]], [w1, w2],adaptname)
             return f"Combined Adapter {adaptname} created"
         else:
             return "You need to add 2 LoRA adapters in the model tab (Transformers)"
     else:
         return "No LoRA loaded yet"             
+
+def merge_loras3(w1,w2,w3):
+    
+    if hasattr(shared.model,'peft_config'):
+        adapters = []
+        #print(f"Adapters: {shared.model.peft_config}")
+        for adapter_name in shared.model.peft_config.items():
+            adapters.append(adapter_name[0])
+
+        if len(adapters)>2:
+            nAd = len(adapters)
+            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}_C{int(w3*100)}"
+            create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1], adapters[2]], [w1, w2, w3],adaptname)
+            return f"Combined Adapter {adaptname} created"
+        else:
+            return "You need to add 3 LoRA adapters in the model tab (Transformers)"
+    else:
+        return "No LoRA loaded yet"             
+
 
 def rescale_lora(w1):
     
@@ -704,13 +802,53 @@ def rescale_lora(w1):
 
         if len(adapters)>0:
             nAd = len(adapters)
-            adaptname = f"rescaled_{nAd}"
+            adaptname = f"Scale{nAd}_A{int(w1*100)}"
             create_weighted_lora_adapter(shared.model, [adapters[0]], [w1],adaptname)
             return f"Weighted Adapter {adaptname} created"
         else:
             return "You need to add a LoRA adapters in the model tab (Transformers)"
     else:
-        return "No LoRA loaded yet"       
+        return "No LoRA loaded yet"   
+
+def display_tokens(text):
+    html_tokens = ""
+
+    if shared.tokenizer is None:
+        return "Tokenizer is not available. Please Load some Model first then type words above."
+    
+    encoded_tokens  = shared.tokenizer.encode(str(text))
+
+    decoded_tokens = []
+    #print(encoded_tokens)
+    for token in encoded_tokens:
+        shared.tokenizer.decode
+        chars = shared.tokenizer.decode([token])
+        if token == 0:
+            decoded_tokens.append("&lt;unk&gt;")
+        elif token == 1:
+            decoded_tokens.append("&lt;s&gt;")
+        elif token == 2:
+            decoded_tokens.append("&lt;/s&gt;")
+        elif 3 <= token <= 258:
+            vocab_by_id = f"&lt;0x{hex(token)[2:].upper()}&gt;"
+            decoded_tokens.append(vocab_by_id)
+        else:
+            decoded_tokens.append(chars)
+
+    for index, token in enumerate(decoded_tokens):
+        #avoid jumpy artefacts
+        if token=='':
+            token = ' '
+        html_tokens += f'<span style="background-color: {pastel_colors[index % len(pastel_colors)]}; ' \
+                    f'padding: 0 4px; border-radius: 3px; margin-right: 0px; margin-bottom: 4px; ' \
+                    f'display: inline-block; height: 1.5em;"><pre>{str(token).replace(" ", "&nbsp;")}</pre></span>'
+        
+    token_count = len(encoded_tokens)
+    html_tokens += f'<div style="font-size: 18px; margin-top: 10px;">Token Count: {token_count}</div>'
+         
+    return html_tokens
+
+
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
     #interface_state = gr.State({k: None for k in input_elements})
@@ -786,9 +924,13 @@ def ui():
                                         stop_btnB = gr.Button('Stop', elem_classes="small-button")
                                 with gr.Column(scale=1, min_width=50):       
                                     toNoteA = ToolButton(value=left_symbol)                        
-                with gr.Tab('HTML'):
+                with gr.Tab('Tokens'):
                     with gr.Row():
-                        htmlB = gr.HTML()
+                        htmlB = gr.HTML(visible=False)
+                    with gr.Row():    
+                        tokenhtml = gr.HTML(visible=True)
+                    with gr.Row():    
+                        tokenize = gr.Button(value='Tokenize A')
                 with gr.Tab('LoRA-Rama'):
                     with gr.Column():
                         
@@ -819,11 +961,14 @@ def ui():
                                     gr_saveAdapter = gr.Textbox(value='loras/my_saved_adapter',lines=1,label='Dump all Adapter(s) in model to folder:')
                                     gr_saveAdapterBtn = gr.Button(value='Dump', elem_classes='small-button')
                             with gr.Column():        
-                                lora_combine_w1 = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA A", value=1.0)    
-                                lora_combine_w2 = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA B", value=1.0)
+                                lora_combine_w1 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA A", value=1.0)    
+                                lora_combine_w2 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA B", value=1.0)
+                                lora_combine_w3 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA C", value=1.0)
+                                lora_neg = gr.Checkbox(value=False,label="Allow negative")
                                 with gr.Row():
                                     lora_scale = gr.Button(value='Rescale A')
-                                    lora_merge = gr.Button(value='Quick Merge A + B')
+                                    lora_merge = gr.Button(value='Merge A + B')
+                                    lora_merge3 = gr.Button(value='Merge A + B + C')
                              
 
                 with gr.Tab('Perma-Memory'):
@@ -880,7 +1025,7 @@ def ui():
                     with gr.Column():
                         with gr.Row():
                             gr_Loralmenu = gr.Radio(choices=get_available_LORA(), value=model_name, label='Activate Loaded LORA adapters', interactive=True)
-                            create_refresh_button(gr_Loralmenu, lambda: None, lambda: {'choices': get_available_LORA(),'value': getattr(shared.model, 'active_adapter', None)}, 'refresh-button')      
+                            gr_Loralmenu_refresh = gr.Button(value=refresh_symbol, elem_classes='refresh-button')
                         gr_summarymenu = gr.Radio(choices=['None','Summary'], value='None', label='Insert Summary', interactive=True)
                         gr_memorymenu = gr.Radio(choices=['None','Memory A','Memory B','Memory C'], value='None', label='Insert Perma-Memory', interactive=True)
                         with gr.Row():
@@ -903,6 +1048,8 @@ def ui():
   
     generate_btnA.click(gather_interface_values, [shared.gradio[k] for k in shared.input_elements], shared.gradio['interface_state']).then(
         generate_reply_wrapperMY, inputs=input_paramsA, outputs= output_paramsA, show_progress=False)
+    
+    #.then(display_tokens,text_boxA,tokenhtml)
     
     generate_SelA.click(gather_interface_values, [shared.gradio[k] for k in shared.input_elements], shared.gradio['interface_state']).then(
         generate_reply_wrapperMYSEL, inputs=input_paramsA, outputs=output_paramsA, show_progress=False)
@@ -1083,6 +1230,9 @@ def ui():
 
     gr_Loralmenu.change(set_LORA,gr_Loralmenu,None)
 
+
+    tokenize.click(display_tokens,text_boxA,tokenhtml)
+
     #sort in natural order reverse
     def list_subfolders(directory):
         subfolders = []
@@ -1173,7 +1323,25 @@ def ui():
         return gr.Radio.update(choices=[], value ='')    
 
     def update_activeAdapters():
-        return gr.Radio.update(choices=get_available_LORA(), value= getattr(shared.model, 'active_adapter', None))
+        choice = get_available_LORA()
+        choice2 = choice[:]  # Create a copy of the choice array
+
+        if len(choice2) ==0:
+            choice2.append("None")
+
+        if len(choice2) < 2:
+            choice2.append("~")
+
+        if len(choice2) < 3:
+            choice2.append("~")
+        
+        if len(choice2) < 4:
+            choice2.append("~")    
+
+        choice2[1] = "A: "+choice2[1]
+        choice2[2] = "B: "+choice2[2]
+        choice2[3] = "C: "+choice2[3]
+        return gr.Radio.update(choices=choice, value= getattr(shared.model, 'active_adapter', None)),gr.Slider.update(label=choice2[1]),gr.Slider.update(label=choice2[2]),gr.Slider.update(label=choice2[3])
 
  # log is my recent PR
     def load_log():
@@ -1245,13 +1413,28 @@ def ui():
 
     #lora_apply.click(apply_lora,[loramenu, lorasub2],[gr_displaytextMK,shared.gradio['model_status']]).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
     #    update_activeAdapters,None, gr_Loralmenu)
+    lora_merge3.click(merge_loras3,[lora_combine_w1,lora_combine_w2,lora_combine_w3],line_text).then(
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
    
     lora_merge.click(merge_loras,[lora_combine_w1,lora_combine_w2],line_text).then(
-        update_activeAdapters,None, gr_Loralmenu)
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
+    
     lora_scale.click(rescale_lora,lora_combine_w1,line_text).then(
-        update_activeAdapters,None, gr_Loralmenu)    
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])    
     
     gr_saveAdapterBtn.click(resaveadapter,gr_saveAdapter,line_text)
+
+    def change_minim_slider(bChange):
+        if bChange:
+
+            return gr.Slider.update(minimum=-1),gr.Slider.update(minimum=-1),gr.Slider.update(minimum=-1)
+        else:
+            return gr.Slider.update(minimum=0),gr.Slider.update(minimum=0),gr.Slider.update(minimum=0)
+
+
+
+
+    lora_neg.change(change_minim_slider,lora_neg,[lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
     def update_lotra_sub(sub):
         global selected_lora_sub
@@ -1277,7 +1460,10 @@ def ui():
     lora_monkey_multiply.release(change_multiplier,lora_monkey_multiply,None).then(lambda: "LORA Scaling changed, press Apply",None,line_text)
 
     lora_monkey_apply.click(apply_lora_can_be_same,[loramenu, lorasub2],line_text).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
-        update_activeAdapters,None, gr_Loralmenu)
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
+
+
+    gr_Loralmenu_refresh.click(update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
     #lorasub.change(path_from_selected,[loramenu,lorasub],displaytext)
 

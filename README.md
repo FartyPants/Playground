@@ -11,7 +11,7 @@ run cmd_windows.bat to start in the correct environment or if using conda run th
 pip uninstall peft
 pip install git+https://github.com/huggingface/peft
 ```
-The uninstall is necessary because PEFT doesn't track correctly the version numbers - all versions are 5.0.0 untill they decide it will be 6.0.0
+The uninstall is necessary because PEFT doesn't track correctly the version numbers - all versions are 5.0.0 untill they decide it will be 6.0.0 - which could be in months
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 

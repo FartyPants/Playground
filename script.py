@@ -13,17 +13,22 @@ from modules.LoRA import add_lora_to_model
 import re
 import json
 import os
-from peft.utils.config import PeftConfig
-from peft.utils.config import PeftConfigMixin
-# i forgot what I was doing here
-# from peft.tuners.lora import mark_only_lora_as_trainable
+
+try:
+    from peft.config import PeftConfig
+    print("NEW PEFT is installed")
+except ImportError:
+        print("Error: you are using an old PEFT version. LORA merging will not work. You need to update to the latest version")
+        from peft.utils.config import PeftConfig
+
+
 
 right_symbol = '\U000027A1'
 left_symbol = '\U00002B05'
 refresh_symbol = '\U0001f504'  # 🔄
 
 # Save the original method
-original_from_from_json_file = PeftConfig.from_pretrained
+#original_from_from_json_file = PeftConfig.from_pretrained
 g_lora_multipolier = 1.0
 g_print_twice = False
 
@@ -80,7 +85,8 @@ params = {
         "paraph_temperament":'Strict',
         "list_by_time":False,
         "dyn_templ_sel": 'None',
-        "dyn_templ_text":''
+        "dyn_templ_text":'',
+        "combination_type":'linear'
     }
 
 file_nameJSON = "playground.json"
@@ -552,6 +558,14 @@ def get_available_LORA():
 
     return prior_set      
 
+def get_loaded_loras():
+    prior_set = []
+    if hasattr(shared.model,'peft_config'):
+        for adapter_name in shared.model.peft_config.items():
+            prior_set.append(adapter_name[0])
+    return prior_set      
+
+
 def set_LORA(item):
       
     prior_set = list(shared.lora_names)
@@ -752,62 +766,90 @@ def add_sub_weighted_adapter(model, adapters, weights, adapters_sub, weights_sub
 
 # what happens if we use negative weights....?
 def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combined"):
+    global params
+    combination_type = params['combination_type']  
     print(f"Combine {adapters} with weights {weights} into {adapter_name}")
-    model.add_weighted_adapter(adapters, weights, adapter_name)
+    model.add_weighted_adapter(adapters, weights, adapter_name, combination_type)
    
 
 def merge_loras(w1,w2):
+    global params
     
     if hasattr(shared.model,'peft_config'):
-        adapters = []
-        #print(f"Adapters: {shared.model.peft_config}")
-        for adapter_name in shared.model.peft_config.items():
-            adapters.append(adapter_name[0])
+ 
+        adapters = get_loaded_loras()
 
         if len(adapters)>1:
             nAd = len(adapters)
-            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}"
+            combination_type = params['combination_type']  
+
+            print(f"Merging: {adapters[0]} with {adapters[1]}")
+ 
+            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}_{combination_type}"
             create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1]], [w1, w2],adaptname)
-            return f"Combined Adapter {adaptname} created"
+
+            adapters_post = get_loaded_loras()
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}") 
+
+            if len(adapters)!=len(adapters_post):
+                return f"Combined Adapter {adaptname} created"
+            else:
+                return f"Combined Adapter failed"
+
         else:
             return "You need to add 2 LoRA adapters in the model tab (Transformers)"
     else:
         return "No LoRA loaded yet"             
 
 def merge_loras3(w1,w2,w3):
-    
+    global params
     if hasattr(shared.model,'peft_config'):
-        adapters = []
-        #print(f"Adapters: {shared.model.peft_config}")
-        for adapter_name in shared.model.peft_config.items():
-            adapters.append(adapter_name[0])
-
+        adapters = get_loaded_loras()
         if len(adapters)>2:
+            combination_type = params['combination_type']  
             nAd = len(adapters)
-            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}_C{int(w3*100)}"
+            adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}_C{int(w3*100)}_{combination_type}"
             create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1], adapters[2]], [w1, w2, w3],adaptname)
-            return f"Combined Adapter {adaptname} created"
+
+            adapters_post = get_loaded_loras()
+
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}")     
+
+            if len(adapters)!=len(adapters_post):
+                return f"Combined Adapter {adaptname} created"
+            else:
+                return f"Combined Adapter failed"
         else:
             return "You need to add 3 LoRA adapters in the model tab (Transformers)"
+        
     else:
         return "No LoRA loaded yet"             
+
 
 
 def rescale_lora(w1):
     
     if hasattr(shared.model,'peft_config'):
-        adapters = []
-        for adapter_name in shared.model.peft_config.items():
-            #print(f"Adapters: {adapter_name[0]}")
-            adapters.append(adapter_name[0])
+        adapters = get_loaded_loras()
 
         if len(adapters)>0:
             nAd = len(adapters)
             adaptname = f"Scale{nAd}_A{int(w1*100)}"
             create_weighted_lora_adapter(shared.model, [adapters[0]], [w1],adaptname)
-            return f"Weighted Adapter {adaptname} created"
+            adapters_post = get_loaded_loras()
+
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}") 
+
+            if len(adapters)!=len(adapters_post):
+                return f"Rescalled Adapter {adaptname} created"
+            else:
+                return f"Rescalled Adapter failed"
         else:
             return "You need to add a LoRA adapters in the model tab (Transformers)"
+
     else:
         return "No LoRA loaded yet"   
 
@@ -844,7 +886,15 @@ def display_tokens(text):
                     f'padding: 0 4px; border-radius: 3px; margin-right: 0px; margin-bottom: 4px; ' \
                     f'display: inline-block; height: 1.5em;"><pre>{str(token).replace(" ", "&nbsp;")}</pre></span>'
         
+
     token_count = len(encoded_tokens)
+
+    # Join the decimal values of encoded_tokens with commas
+    token_values_str = ', '.join(map(str, encoded_tokens))
+
+    # Append the token values to the HTML
+    html_tokens += f'<div style="font-size: 14px; margin-top: 10px;">Token Values: {token_values_str}</div>'
+
     html_tokens += f'<div style="font-size: 18px; margin-top: 10px;">Token Count: {token_count}</div>'
          
     return html_tokens
@@ -953,7 +1003,10 @@ def ui():
                                 lora_monkey = gr.Button(value='Allow changing LoRA Scaling')
                                 lora_monkey_multiply = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA Scaling Coefficient", value=1.0, interactive=False)
                         with gr.Row():                                
-                            lora_monkey_apply = gr.Button(value='Apply LoRA', variant="primary")
+                            lora_monkey_apply = gr.Button(value='Load LoRA', variant="primary")
+                            lora_monkey_add = gr.Button(value='+ Add LoRA')
+                            lora_monkey_delete = gr.Button(value='Delete Active LoRA')
+
                         with gr.Row():
                             line_text = gr.Markdown(value='Ready')
                         with gr.Accordion("Tools", open=False):
@@ -966,6 +1019,8 @@ def ui():
                                 lora_combine_w2 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA B", value=1.0)
                                 lora_combine_w3 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA C", value=1.0)
                                 lora_neg = gr.Checkbox(value=False,label="Allow negative")
+                                combination_type = gr.Dropdown(choices=['svd', 'linear', 'cat'], value='linear', label='LoRA Merge Type')
+                                gr.Markdown(value="*svd* merge different ranks, *linear* merge same rank, *cat* sums ranks")
                                 with gr.Row():
                                     lora_scale = gr.Button(value='Rescale A')
                                     lora_merge = gr.Button(value='Merge A + B')
@@ -1032,7 +1087,7 @@ def ui():
                         with gr.Row():
                             max_words = gr.Number(label='Limit previous context to last # of words (0 is no limit, 500 is about half page)', value=params['max_words'])                            
                         with gr.Row():                            
-                            gr.Markdown('v 7.02 by FPHam https://github.com/FartyPants/Playground')    
+                            gr.Markdown('v 8.00 by FPHam https://github.com/FartyPants/Playground')    
 
 
     selectStateA = gr.State('selectA')
@@ -1274,6 +1329,64 @@ def ui():
         else:
             yield ('No Model loaded...'),("No Model Loaded") 
 
+    def delete_lora():
+
+        adapter_name = getattr(shared.model,'active_adapter','None')
+        loras_before = get_available_LORA()
+        shared.model.delete_adapter(adapter_name)
+        loras_after =  get_available_LORA()
+        if len(loras_before) == len(loras_after):
+            print("No Lora Deleted")
+            yield 'No Lora Deleted...' 
+        else:
+            print (f"Lora deleted {adapter_name}")
+            yield (f"Lora deleted {adapter_name}")
+
+        adapter_name = getattr(shared.model,'active_adapter','None')
+        print (f"Active adapter: {adapter_name}")
+
+    def get_lora_path(lora_name):
+        p = Path(lora_name)
+        if p.exists():
+            lora_name = p.parts[-1]
+
+        return Path(f"{shared.args.lora_dir}/{lora_name}")
+
+    def add_lora(selectlora,selectsub):
+        global selected_lora_main_sub
+        global g_print_twice
+        g_print_twice = False
+        path = path_from_selected(selectlora,selectsub)
+        lora_path = Path(f"{shared.args.lora_dir}/{path}")
+
+        
+        selected_lora_main_sub = path
+
+        print(f"Adding Lora from: {lora_path} lora-name: {selected_lora_main_sub}")
+
+        if os.path.isdir(lora_path):
+           
+            loras_before = get_available_LORA()
+            if len(loras_before) == 0:
+                 yield (f"First lora needs to be loaded with Load Lora")     
+            else:    
+                if shared.model_name!='None' and shared.model_name!='':
+                    yield (f"Adding the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
+                    shared.model.load_adapter(lora_path, selected_lora_main_sub)
+                    loras_after =  get_available_LORA()
+                    if len(loras_before) == len(loras_after):
+                        print("No Lora Added")
+                        yield 'No Lora added...' 
+                    else:
+                        # get last item of loras_after
+                        last_lora = loras_after[-1]
+                        print (f"Added Lora {last_lora}")
+                        yield (f"Added Lora {last_lora}")
+        
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}")
+
+
     def apply_lora_can_be_same(selectlora,selectsub):
         global selected_lora_main_sub
         global g_print_twice
@@ -1308,7 +1421,9 @@ def ui():
                     yield "Lora failed..." 
             else:
                 yield 'No Model loaded...' 
-          
+            
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}")      
 
     def update_lotra_subs_main(selectlora):
         global selected_lora_main
@@ -1446,9 +1561,15 @@ def ui():
     lorasub2.change(update_lotra_sub, lorasub2, None ).then(load_log,None,[gr_displayLine,line_text], show_progress=False)   
     
     def enable_LORA_monkey():
-        PeftConfig.from_json_file = classmethod(from_json_file)
-        print("[FP] PEFT monkey patch")
-        return gr.Slider.update(interactive=True),gr.Button.update(visible=False)
+        try:
+            PeftConfig.from_json_file = classmethod(from_json_file)
+            print("[FP] PEFT monkey patch")
+            return gr.Slider.update(interactive=True), gr.Button.update(visible=False)
+        except NameError:
+            print("Error: PeftConfig is not defined. You are using OLD PEFT, you need to update to the latest version")
+            # You can choose to return some default values or take other actions as needed
+            return gr.Slider.update(interactive=False),gr.Button.update(visible=True)
+
 
     lora_monkey.click(enable_LORA_monkey,None,[lora_monkey_multiply,lora_monkey])
 
@@ -1460,12 +1581,19 @@ def ui():
     lora_monkey_multiply.change(change_multiplier,lora_monkey_multiply,None)
     lora_monkey_multiply.release(change_multiplier,lora_monkey_multiply,None).then(lambda: "LORA Scaling changed, press Apply",None,line_text)
 
-    lora_monkey_apply.click(apply_lora_can_be_same,[loramenu, lorasub2],line_text).then(lambda : selected_lora_main_sub,None, shared.gradio['lora_menu']).then(
+    lora_monkey_apply.click(apply_lora_can_be_same,[loramenu, lorasub2],line_text).then(lambda : str(selected_lora_main_sub),None, shared.gradio['lora_menu']).then(
         update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
+    lora_monkey_add.click(add_lora,[loramenu, lorasub2],line_text).then(lambda : str(selected_lora_main_sub),None, shared.gradio['lora_menu']).then(
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
+
+    lora_monkey_delete.click(delete_lora,None,line_text).then(lambda : str(selected_lora_main_sub),None, shared.gradio['lora_menu']).then(
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
     gr_Loralmenu_refresh.click(update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
+
+    combination_type.change(lambda x: params.update({"combination_type": x}), combination_type, None) 
     #lorasub.change(path_from_selected,[loramenu,lorasub],displaytext)
 
     def change_sort(sort):

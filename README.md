@@ -4,6 +4,15 @@
 
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
+NOTE: watch the terminal when the extension is loaded. If it says you have old PEFT, then you won't be able to merge Loras. You would need to update PEFT for the newest one.
+
+run cmd_windows.bat to start in the correct environment or if using conda run the correct environment
+```
+pip uninstall peft
+pip install git+https://github.com/huggingface/peft
+```
+The uninstall is necessary because PEFT doesn't track correctly the version numbers - all versions are 5.0.0 untill they decide it will be 6.0.0
+
 ![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 
 ## Features

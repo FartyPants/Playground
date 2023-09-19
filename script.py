@@ -9,10 +9,13 @@ from modules.ui import list_interface_input_elements
 from modules.ui import gather_interface_values
 from modules.html_generator import generate_basic_html
 from pathlib import Path
-from modules.LoRA import add_lora_to_model
+from modules.LoRA import add_lora_autogptq, add_lora_exllama
 import re
 import json
 import os
+from peft import PeftModel
+from modules.models import reload_model
+import torch
 
 try:
     from peft.config import PeftConfig
@@ -31,6 +34,8 @@ refresh_symbol = '\U0001f504'  # 🔄
 #original_from_from_json_file = PeftConfig.from_pretrained
 g_lora_multipolier = 1.0
 g_print_twice = False
+
+editing_type = ''
 
 defaultTemp_keys = ['summary_turn', 'summary_include_turn', 'summary_include_turn2']
 
@@ -55,6 +60,7 @@ selected_lora_main_sub =''
 selected_lora_main =''
 selected_lora_sub = ''
 editing_note = False
+renaming_note = False
 g_original_lora_rank = 0
 
 paraph_undo = ''
@@ -551,9 +557,12 @@ def get_available_LORA():
     #print (f"Scaling {shared.model.base_model.scaling}")
 
     prior_set = ['None']
+    print("Loaded adapters:")
     if hasattr(shared.model,'peft_config'):
+        index = 1
         for adapter_name in shared.model.peft_config.items():
-            print(f"Loaded adapters in model: {adapter_name[0]}")
+            print(f"  {index}: {adapter_name[0]}")
+            index = index+1
             prior_set.append(adapter_name[0])
 
     return prior_set      
@@ -566,20 +575,23 @@ def get_loaded_loras():
     return prior_set      
 
 
+
 def set_LORA(item):
       
-    prior_set = list(shared.lora_names)
+    #prior_set = list(shared.lora_names)
     if hasattr(shared.model, 'set_adapter') and hasattr(shared.model, 'active_adapter'):
-        if prior_set:
-            if item =='None' and hasattr(shared.model.base_model, 'disable_adapter_layers'):
-                shared.model.base_model.disable_adapter_layers()
-                print (f"[Disable] Adapter layers for: {shared.model.active_adapter}")   
-            else:
+        #if prior_set:
+        if item =='None' and hasattr(shared.model.base_model, 'disable_adapter_layers'):
+            shared.model.base_model.disable_adapter_layers()
+            print (f"[Disable] Adapter ({shared.model.active_adapter})")   
+        else:
+            if item!=None:
                 shared.model.set_adapter(item)
-                print (f"Set active adapter: {shared.model.active_adapter}")  
                 if hasattr(shared.model.base_model, 'enable_adapter_layers'):
                     shared.model.base_model.enable_adapter_layers()
-                    print (f"[Enable] Adapter layers")  
+
+                print (f"[Enable] Adapter: {shared.model.active_adapter}")  
+                
                 
             
 def get_available_loras_alpha():
@@ -772,6 +784,12 @@ def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combine
     model.add_weighted_adapter(adapters, weights, adapter_name, combination_type)
    
 
+def Select_last_lora():
+    loras_before = get_loaded_loras()
+    last_element = loras_before[-1]
+    set_LORA(last_element)
+
+
 def merge_loras(w1,w2):
     global params
     
@@ -793,9 +811,10 @@ def merge_loras(w1,w2):
             print (f"Active adapter: {adapter_name}") 
 
             if len(adapters)!=len(adapters_post):
+                Select_last_lora()
                 return f"Combined Adapter {adaptname} created"
             else:
-                return f"Combined Adapter failed"
+                return "Combined Adapter failed"
 
         else:
             return "You need to add 2 LoRA adapters in the model tab (Transformers)"
@@ -818,6 +837,7 @@ def merge_loras3(w1,w2,w3):
             print (f"Active adapter: {adapter_name}")     
 
             if len(adapters)!=len(adapters_post):
+                Select_last_lora()
                 return f"Combined Adapter {adaptname} created"
             else:
                 return f"Combined Adapter failed"
@@ -844,7 +864,9 @@ def rescale_lora(w1):
             print (f"Active adapter: {adapter_name}") 
 
             if len(adapters)!=len(adapters_post):
+                Select_last_lora()
                 return f"Rescalled Adapter {adaptname} created"
+                
             else:
                 return f"Rescalled Adapter failed"
         else:
@@ -999,13 +1021,23 @@ def ui():
                                 #gr_displaytextMK = gr.HTML('') 
                                 with gr.Row():
                                     gr_displayLine = gr.Textbox(value='',lines=2,interactive=False,label='Training Log')
+                                    gr_EditName = gr.Text(value='',visible=False,label='Edit')
+                                    gr_EditNameSave = gr.Button(value='Save', elem_classes='refresh-button',visible=False,variant="primary")
+                                    gr_EditNameCancel = gr.Button(value='Cancel', elem_classes='refresh-button',visible=False)
+
+
+                                with gr.Row():
+                                    lora_monkey = gr.Button(value='Allow changing LoRA Scaling')
                                     gr_dispLineEdit = gr.Button(value='Note', elem_classes='refresh-button')
-                                lora_monkey = gr.Button(value='Allow changing LoRA Scaling')
-                                lora_monkey_multiply = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="LoRA Scaling Coefficient", value=1.0, interactive=False)
+                                    gr_dispLineRename = gr.Button(value='Rename', elem_classes='refresh-button')
+                                lora_monkey_multiply = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="Dirty LoRA Scaling Monkeypatch", value=1.0, interactive=False)
                         with gr.Row():                                
                             lora_monkey_apply = gr.Button(value='Load LoRA', variant="primary")
+                            
                             lora_monkey_add = gr.Button(value='+ Add LoRA')
+                            lora_monkey_reload = gr.Button(value='Reload Model + Lora')
                             lora_monkey_delete = gr.Button(value='Delete Active LoRA')
+                            
 
                         with gr.Row():
                             line_text = gr.Markdown(value='Ready')
@@ -1313,44 +1345,85 @@ def ui():
         
         return f"{selectlora}"
 
+
+
+    def delete_All_ButFirst():
+
+        if hasattr(shared.model, "delete_adapter"):
+            adapter_name = getattr(shared.model,'active_adapter','None')
+                        
+            loras_before = get_loaded_loras()
+            #setattr(shared.model,'active_adapter',None)
+            index = 0
+            for adapter in loras_before:
+                if index>0:
+                    print(f"Removing adapter: {adapter}")
+                    shared.model.delete_adapter(adapter)
+                index    
+                index = +1    
+
+    def delete_All_loraButActive():
+
+        # I don't know why this needs to be here :(    
+        #if hasattr(shared.model, 'unload'):
+        #    print("Unloading the model")
+        #    shared.model.unload()
+
+        #lorasbase = get_loaded_lorasbase()
+        #print(lorasbase)
+
+        if hasattr(shared.model, "delete_adapter"):
+            adapter_name = getattr(shared.model,'active_adapter','None')
+                        
+            loras_before = get_loaded_loras()
+            #setattr(shared.model,'active_adapter',None)
+
+            for adapter in loras_before:
+                if adapter != adapter_name:
+                    print(f"Removing adapter: {adapter}")
+                    shared.model.delete_adapter(adapter)
+
+    def delete_All_lora():
+
+        if hasattr(shared.model, "delete_adapter"):
+            #adapter_name = getattr(shared.model,'active_adapter','None')
+                        
+            loras_before = get_loaded_loras()
+            #setattr(shared.model,'active_adapter',None)
+
+            for adapter in loras_before:
+                if adapter != None:
+                    print(f"Removing adapter: {adapter}")
+                    shared.model.delete_adapter(adapter)
+
+
    
-    def apply_lora(selectlora,selectsub):
-        global selected_lora_main_sub
-        path = path_from_selected(selectlora,selectsub)   
-        selected_lora_main_sub = path
-        if shared.model_name!='None' and shared.model_name!='':
-            yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}"),(f"Applying the following LoRA to {shared.model_name} : {selected_lora_main_sub}")
-            add_lora_to_model([selected_lora_main_sub])
-
-            if len(shared.lora_names)>0:
-                yield ("Successfuly applied the LoRA"),("Successfuly applied the LoRA")   
-            else:
-                yield ("Lora failed..."),("LoRA failed") 
-        else:
-            yield ('No Model loaded...'),("No Model Loaded") 
-
     def delete_lora():
 
-        adapter_name = getattr(shared.model,'active_adapter','None')
-        loras_before = get_available_LORA()
-        shared.model.delete_adapter(adapter_name)
-        loras_after =  get_available_LORA()
-        if len(loras_before) == len(loras_after):
-            print("No Lora Deleted")
-            yield 'No Lora Deleted...' 
-        else:
-            print (f"Lora deleted {adapter_name}")
-            yield (f"Lora deleted {adapter_name}")
+        if hasattr(shared.model, "delete_adapter"):
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            loras_before = get_loaded_loras()
 
-        adapter_name = getattr(shared.model,'active_adapter','None')
-        print (f"Active adapter: {adapter_name}")
+            if len(loras_before)<2:
+                return 'No Lora to removed. To replace single adapter use Load Single Lora'
+            # set anything else
+            for adapter in loras_before:
+                if adapter != adapter_name:
+                    set_LORA(adapter)
+                    break
 
-    def get_lora_path(lora_name):
-        p = Path(lora_name)
-        if p.exists():
-            lora_name = p.parts[-1]
+            #setattr(shared.model,'active_adapter',None)
+            shared.model.delete_adapter(adapter_name)
+            loras_after =  get_loaded_loras()
+            if len(loras_before) == len(loras_after):
+                print("No Lora removed")
+                yield 'No Lora removed...' 
+            else:
+                print (f"Lora removed {adapter_name}")
+                yield (f"Lora removed {adapter_name}")
 
-        return Path(f"{shared.args.lora_dir}/{lora_name}")
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}")
 
     def add_lora(selectlora,selectsub):
         global selected_lora_main_sub
@@ -1366,15 +1439,15 @@ def ui():
 
         if os.path.isdir(lora_path):
            
-            loras_before = get_available_LORA()
+            loras_before = get_loaded_loras()
             if len(loras_before) == 0:
                  yield (f"First lora needs to be loaded with Load Lora")     
             else:    
                 if shared.model_name!='None' and shared.model_name!='':
                     yield (f"Adding the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
                     shared.model.load_adapter(lora_path, selected_lora_main_sub)
-                    loras_after =  get_available_LORA()
-                    if len(loras_before) == len(loras_after):
+                    loras_after =  get_loaded_loras()
+                    if loras_before == loras_after:
                         print("No Lora Added")
                         yield 'No Lora added...' 
                     else:
@@ -1382,9 +1455,42 @@ def ui():
                         last_lora = loras_after[-1]
                         print (f"Added Lora {last_lora}")
                         yield (f"Added Lora {last_lora}")
-        
+            Select_last_lora()    
             adapter_name = getattr(shared.model,'active_adapter','None')
             print (f"Active adapter: {adapter_name}")
+
+
+    def add_lora_to_model(lora_name):
+        if 'GPTQForCausalLM' in shared.model.__class__.__name__ or shared.args.loader == 'AutoGPTQ':
+            add_lora_autogptq([lora_name])
+        elif shared.model.__class__.__name__ in ['ExllamaModel', 'ExllamaHF'] or shared.args.loader == 'ExLlama':
+            add_lora_exllama([lora_name])
+        else:
+           
+            params = {}
+            if not shared.args.cpu:
+                if shared.args.load_in_4bit or shared.args.load_in_8bit:
+                    params['peft_type'] = shared.model.dtype
+                else:
+                    params['dtype'] = shared.model.dtype
+                    if hasattr(shared.model, "hf_device_map"):
+                        params['device_map'] = {"base_model.model." + k: v for k, v in shared.model.hf_device_map.items()}
+
+            print(f"Applying the following LoRAs to {shared.model_name}: {lora_name}")
+
+            lora_path = Path(f"{shared.args.lora_dir}/{lora_name}")
+            
+            shared.model = PeftModel.from_pretrained(shared.model,  lora_path, adapter_name=lora_name, **params)
+            
+
+            if not shared.args.load_in_8bit and not shared.args.cpu:
+                shared.model.half()
+                if not hasattr(shared.model, "hf_device_map"):
+                    if torch.backends.mps.is_available():
+                        device = torch.device('mps')
+                        shared.model = shared.model.to(device)
+                    else:
+                        shared.model = shared.model.cuda()
 
 
     def apply_lora_can_be_same(selectlora,selectsub):
@@ -1401,29 +1507,96 @@ def ui():
                 yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
 
                 shared.lora_names = []
-                            
+                loras_before = get_loaded_loras()
+
+
                 if 'GPTQForCausalLM' in shared.model.__class__.__name__:
                     print("LORA -> AutoGPTQ")
                 elif shared.model.__class__.__name__ == 'ExllamaModel':
                     print("LORA -> Exllama")
                 else:
                             # shared.model may no longer be PeftModel
-                    print("LORA -> Transformers")                        
-                    if hasattr(shared.model, 'disable_adapter'):  
-                        shared.model.disable_adapter()  
-                        shared.model = shared.model.base_model.model
+                    print("LORA -> Transformers") 
 
-                add_lora_to_model([selected_lora_main_sub])
-                    
-                if len(shared.lora_names)>0:
-                    yield "Successfuly applied the LoRA"   
+
+                    if hasattr(shared.model, 'disable_adapter'):  
+                        #shared.model.disable_adapter()
+                        #delete_All_ButFirst()
+                        #shared.model = shared.model.base_model.model.unload()
+                        print("model < model.base_model.model") 
+                        shared.model = shared.model.base_model.model
+                        
+
+                
+               
+                #if len(loras_before) == 0:
+                add_lora_to_model(selected_lora_main_sub)
+                #Select_last_lora()
+
+                #else: 
+                #    reload_model()
+                #    add_lora_to_model(selected_lora_main_sub)
+
+                
+                #delete_All_loraButActive()
+
+                loras_after =  get_loaded_loras()
+                
+                if loras_before == loras_after:
+                    yield "Nothing changed..." 
                 else:
-                    yield "Lora failed..." 
+                    yield "Successfuly applied the new LoRA"   
+                    
             else:
                 yield 'No Model loaded...' 
             
             adapter_name = getattr(shared.model,'active_adapter','None')
             print (f"Active adapter: {adapter_name}")      
+
+    def reload_and_lora(selectlora,selectsub):
+        global selected_lora_main_sub
+        global g_print_twice
+        g_print_twice = False
+        path = path_from_selected(selectlora,selectsub)
+        lora_path = Path(f"{shared.args.lora_dir}/{path}")
+        selected_lora_main_sub = path
+
+        if os.path.isdir(lora_path):
+               
+            if shared.model_name!='None' and shared.model_name!='':
+                
+
+                shared.lora_names = []
+                loras_before = get_loaded_loras()
+
+
+                if 'GPTQForCausalLM' in shared.model.__class__.__name__:
+                    print("LORA -> AutoGPTQ")
+                elif shared.model.__class__.__name__ == 'ExllamaModel':
+                    print("LORA -> Exllama")
+                else:
+                            # shared.model may no longer be PeftModel
+                    print("LORA -> Transformers") 
+
+
+
+                print("Reloading model")
+                yield (f"Reloading model {shared.model_name}")
+                reload_model()
+              
+                yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
+                add_lora_to_model(selected_lora_main_sub)
+
+                loras_after =  get_loaded_loras()
+                
+                if len(loras_after)==1:
+                    yield "Successfuly applied the new LoRA"   
+                    
+            else:
+                yield 'No Model loaded...' 
+            
+            adapter_name = getattr(shared.model,'active_adapter','None')
+            print (f"Active adapter: {adapter_name}")     
 
     def update_lotra_subs_main(selectlora):
         global selected_lora_main
@@ -1488,7 +1661,7 @@ def ui():
         try:
             with open(full_path, 'r') as json_file:
                 new_params = json.load(json_file)
-                keys_to_include = ['loss', 'learning_rate', 'epoch', 'current_steps']
+                keys_to_include = ['loss', 'learning_rate', 'epoch', 'current_steps', 'projections']
  
                 row_one = '<tr>'
                 row_two = '<tr>'
@@ -1589,6 +1762,9 @@ def ui():
 
     lora_monkey_delete.click(delete_lora,None,line_text).then(lambda : str(selected_lora_main_sub),None, shared.gradio['lora_menu']).then(
         update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
+    
+    lora_monkey_reload.click(reload_and_lora,[loramenu, lorasub2],line_text).then(lambda : str(selected_lora_main_sub),None, shared.gradio['lora_menu']).then(
+        update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
     gr_Loralmenu_refresh.click(update_activeAdapters,None, [gr_Loralmenu,lora_combine_w1,lora_combine_w2,lora_combine_w3])
 
@@ -1606,34 +1782,54 @@ def ui():
     
     lora_list_by_time.change(change_sort,lora_list_by_time,None).then(update_reloadLora,None, loramenu)
 
-    def edit_note(line):
-        global editing_note
-        editing_note = not editing_note
-        note = ''
-
-        if selected_lora_main=='':
-            return "No LoRA loaded",gr.Button.update(value='Note', variant='secondary')
-
+    def show_edit():
+        global editing_type
+        editing_type = 'note'
         path = path_from_selected(selected_lora_main,selected_lora_sub)
         full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
-        if editing_note:
 
-            #load Note
-            note = 'Write a note here...'
-            try:
-                with open(full_path, 'r') as json_file:
-                    new_params = json.load(json_file)
-                    
-                    for key, value in new_params.items():
-                        if key=='note':
-                            note = f"{value}"
+        note = 'Write a note here...'
+        try:
+            with open(full_path, 'r') as json_file:
+                new_params = json.load(json_file)
+                
+                for key, value in new_params.items():
+                    if key=='note':
+                        note = f"{value}"
+        except FileNotFoundError:
+            pass 
 
-            except FileNotFoundError:
-                pass 
+        return gr.Textbox.update(value = note, interactive= True, visible=True),gr.Button.update(visible=True),gr.Button.update(visible=True)
 
-            return gr.Textbox.update(interactive=True, value = note),gr.Button.update(value='Save', variant='primary')
-        else:
+    def show_edit_rename():
+        global editing_type
+        editing_type = 'rename'
+        path = path_from_selected(selected_lora_main,selected_lora_sub)
+        full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
 
+        note = selected_lora_sub
+        if note == '' or note =='Final':
+            note = 'Rename sub only!'
+            return gr.Textbox.update(value = note, interactive= True, visible=True),gr.Button.update(visible=False),gr.Button.update(visible=True)
+
+        return gr.Textbox.update(value = note, interactive= True, visible=True),gr.Button.update(visible=True),gr.Button.update(visible=True)
+
+
+    def show_cancel():
+        global editing_type
+        editing_type = ''
+        return gr.Textbox.update(visible=False),gr.Button.update(visible=False),gr.Button.update(visible=False)
+
+    def save_note(line):
+        global editing_type
+
+
+        
+        path = path_from_selected(selected_lora_main,selected_lora_sub)
+        full_path = Path(f"{shared.args.lora_dir}/{path}")
+
+        if editing_type=='note':
+            
             #load log
             resave_new = {}
             try:
@@ -1659,16 +1855,36 @@ def ui():
                     except IOError as e:
                         print(f"An error occurred while saving the file: {e}")  
 
+        if editing_type=='rename':
+            newpath = path_from_selected(selected_lora_main,line)
+            full_newpath = Path(f"{shared.args.lora_dir}/{newpath}")
+            note = 'Rename Failed'
+            try:
+                # Rename the subfolder
+                os.rename(full_path, full_newpath)
+                print(f"Renamed '{path}' to '{newpath}'")
+                note = f"Renamed '{path}' to '{newpath}'"
+            except FileNotFoundError:
+                print(f"Error: The '{full_path}' does not exist.")
+            except PermissionError:
+                print(f"Error: Permission denied. You may not have the necessary permissions.")
+            except OSError as e:
+                print(f"Error: An OS error occurred: {e}")    
 
             # reload again
-            note, nothing = load_log()
-            return gr.Textbox.update(interactive=False,value = note),gr.Button.update(value='Note', variant='secondary')
+        editing_type = ''    
+        
+        return gr.Textbox.update(value = note, interactive= True, visible=True),gr.Textbox.update(visible=False),gr.Button.update(visible=False),gr.Button.update(visible=False)
+
+
+    gr_dispLineEdit.click(show_edit,None,[gr_EditName,gr_EditNameSave,gr_EditNameCancel])
+    gr_dispLineRename.click(show_edit_rename,None,[gr_EditName,gr_EditNameSave,gr_EditNameCancel])
+    gr_EditNameCancel.click(show_cancel,None,[gr_EditName,gr_EditNameSave,gr_EditNameCancel])
+    gr_EditNameSave.click(save_note,gr_EditName,[gr_displayLine,gr_EditName,gr_EditNameSave,gr_EditNameCancel]).then(update_lotra_subs_main,loramenu, lorasub2)
 
 
 
-    gr_dispLineEdit.click(edit_note,gr_displayLine,[gr_displayLine,gr_dispLineEdit])
 
 
-# monkey patch peft from peft.utils import PeftConfigMixin
-#def new_from_pretrained(cls, pretrained_model_name_or_path, subfolder=None, **kwargs):
-#PeftConfigMixin.from_pretrained = classmethod(new_from_pretrained)
+
+ 

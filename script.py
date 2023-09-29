@@ -921,6 +921,58 @@ def display_tokens(text):
          
     return html_tokens
 
+def custom_js():
+    java = '''
+const playgroundAElement = document.querySelector('#textbox-playgroundA textarea');
+let playgroundAScrolled = false;
+
+playgroundAElement.addEventListener('scroll', function() {
+  let diff = playgroundAElement.scrollHeight - playgroundAElement.clientHeight;
+  if(Math.abs(playgroundAElement.scrollTop - diff) <= 1 || diff == 0) {
+    playgroundAScrolled = false;
+  } else {
+    playgroundAScrolled = true;
+  }
+});
+
+const playgroundAObserver = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if(!playgroundAScrolled) {
+      playgroundAElement.scrollTop = playgroundAElement.scrollHeight;
+    }
+  });
+});
+
+playgroundAObserver.observe(playgroundAElement.parentNode.parentNode.parentNode, config);
+
+const playgroundBElement = document.querySelector('#textbox-playgroundB textarea');
+let playgroundBScrolled = false;
+
+playgroundBElement.addEventListener('scroll', function() {
+  let diff = playgroundBElement.scrollHeight - playgroundBElement.clientHeight;
+  if(Math.abs(playgroundBElement.scrollTop - diff) <= 1 || diff == 0) {
+    playgroundBScrolled = false;
+  } else {
+    playgroundBScrolled = true;
+  }
+});
+
+const playgroundBObserver = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if(!playgroundBScrolled) {
+      playgroundBElement.scrollTop = playgroundBElement.scrollHeight;
+    }
+  });
+});
+
+playgroundBObserver.observe(playgroundBElement.parentNode.parentNode.parentNode, config);
+
+
+
+'''
+    return java
+
+
 
 def ui():
     #input_elements = list_interface_input_elements(chat=False)
@@ -960,7 +1012,7 @@ def ui():
                 with gr.Tab('Text'):
                     with gr.Row():
                         with gr.Column():
-                            text_boxA = gr.Textbox(value='', elem_classes="textbox", lines=20, label = 'Notebook A')
+                            text_boxA = gr.Textbox(value='', lines=20, label = 'Notebook A', elem_classes=['textbox', 'add_scrollbar'], elem_id='textbox-playgroundA')
                             with gr.Row():
                                 with gr.Column(scale=10):
                                     with gr.Row():    
@@ -988,7 +1040,7 @@ def ui():
                 with gr.Tab('Text'):
                     with gr.Row():
                         with gr.Column():
-                            text_boxB = gr.Textbox(value='', elem_classes="textbox", lines=20, label = 'Notebook B')
+                            text_boxB = gr.Textbox(value='', lines=20, label = 'Notebook B', elem_classes=['textbox', 'add_scrollbar'], elem_id='textbox-playgroundB')
                             with gr.Row():
                                 with gr.Column(scale=10):
                                     with gr.Row():    
@@ -1119,7 +1171,7 @@ def ui():
                         with gr.Row():
                             max_words = gr.Number(label='Limit previous context to last # of words (0 is no limit, 500 is about half page)', value=params['max_words'])                            
                         with gr.Row():                            
-                            gr.Markdown('v 8.00 by FPHam https://github.com/FartyPants/Playground')    
+                            gr.Markdown('v 9.00 by FPHam https://github.com/FartyPants/Playground')    
 
 
     selectStateA = gr.State('selectA')
@@ -1823,12 +1875,13 @@ def ui():
     def save_note(line):
         global editing_type
 
-
+        note = ''
         
         path = path_from_selected(selected_lora_main,selected_lora_sub)
-        full_path = Path(f"{shared.args.lora_dir}/{path}")
+        
 
         if editing_type=='note':
+            full_path = Path(f"{shared.args.lora_dir}/{path}/training_log.json")
             
             #load log
             resave_new = {}
@@ -1840,6 +1893,7 @@ def ui():
                         resave_new[item] = new_params[item]
 
             except FileNotFoundError:
+                note = f"Error loading {full_path}"
                 pass 
 
 
@@ -1852,10 +1906,13 @@ def ui():
                         with open(full_path, 'w') as json_file:
                             json.dump(resave_new, json_file,indent=2)
                             print(f"Saved: {full_path}")
+                            note = f"Saved: {full_path}"
                     except IOError as e:
                         print(f"An error occurred while saving the file: {e}")  
+                        note = f"Error resaving {full_path}"
 
         if editing_type=='rename':
+            full_path = Path(f"{shared.args.lora_dir}/{path}")
             newpath = path_from_selected(selected_lora_main,line)
             full_newpath = Path(f"{shared.args.lora_dir}/{newpath}")
             note = 'Rename Failed'

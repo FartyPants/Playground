@@ -4,6 +4,8 @@
 
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
+New: Auto scroll!!
+
 NOTE: watch the terminal when the extension is loaded. If it says you have old PEFT, then you won't be able to merge Loras. You would need to update PEFT for the newest one.
 
 Merging LORA may be iffy, because PEFT is chnaging stuff all the time....

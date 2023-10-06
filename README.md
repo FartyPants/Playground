@@ -8,6 +8,11 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 - Auto scroll!!
 - lot of error code handling for LORA - PEFT keeps changing so much that things stop working randomly so it needed some better robust code to go and not blow with errors)
 
+## Tip: 
+Try my new extension called Twinbook
+[https://github.com/FartyPants/Twinbook](https://github.com/FartyPants/Twinbook)
+It's sort of based on Playground with a less stuff - but it clevery combines notebookk and chat, you may find it very appealing. (or not)
+
 ![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 
 ## Features

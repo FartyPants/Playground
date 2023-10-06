@@ -197,7 +197,7 @@ You need what is in the src folder - which is subfolder peft - (that's the same 
 ```
 find this: src/peft
 ```
-now copy it to text-generation-webui-new\installer_files\env\Lib\site-packages
+now copy the peft subfolder to text-generation-webui-new\installer_files\env\Lib\site-packages
 ```
 text-generation-webui-new\installer_files\env\Lib\site-packages
 ```

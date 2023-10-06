@@ -10,7 +10,7 @@ Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-No
 
 # Note about LORA merging
 
-Merging LORA may be iffy, because PEFT is chnaging stuff all the time, up and down, ... the biggest problem is that peft doesn't feel like changing version whenever they add/fix things, only once a full moon and not even Earth's moon. This of course messes up with pip and installation and veruy probably YOU HAVE OLDER PEFT
+Merging LORA may be iffy, because PEFT is chnaging stuff all the time, up and down, ... the biggest problem is that peft doesn't feel like changing version whenever they add/fix things, only once a full moon and not even Earth's moon. This of course messes up with pip and installation and very probably YOU HAVE some different PEFT than me or the other guy.
 To get latest PEFT - look in installer files: text-generation-webui-new\installer_files\env\Lib\site-packages
 find peft folder. Rename it to peft_old
 go to peft github 

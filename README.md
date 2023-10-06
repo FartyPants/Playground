@@ -4,11 +4,24 @@
 
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
-New: Auto scroll!!
+# New: 
+- Auto scroll!!
+- lot of error code handling for LORA - PEFT keeps changing so much that things stop working randomly so it needed some better robust code to go and not blow with errors)
 
-NOTE: watch the terminal when the extension is loaded. If it says you have old PEFT, then you won't be able to merge Loras. You would need to update PEFT for the newest one.
+# Note about LORA merging
 
-Merging LORA may be iffy, because PEFT is chnaging stuff all the time....
+Merging LORA may be iffy, because PEFT is chnaging stuff all the time, up and down, ... the biggest problem is that peft doesn't feel like changing version whenever they add/fix things, only once a full moon and not even Earth's moon. This of course messes up with pip and installation and veruy probably YOU HAVE OLDER PEFT
+To get latest PEFT - look in installer files: text-generation-webui-new\installer_files\env\Lib\site-packages
+find peft folder. Rename it to peft_old
+go to peft github 
+https://github.com/huggingface/peft
+
+and just clone the peft somewhere git clone https://github.com/huggingface/peft or download the whole thing
+
+You need what is in the src folder - which is subfolder peft - (that's the same thing as you just renamed to peft_old) - so now copy it to text-generation-webui-new\installer_files\env\Lib\site-packages
+
+Now run webui - and see if you can merge LORA's
+If things are even worse - just go back and put the peft_old back - no harm done.
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 

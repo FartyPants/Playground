@@ -68,6 +68,11 @@ paraph_undoSEL = [0,0]
 paraph_redo = ''
 paraph_redoSEL = [0,0]
 
+RED = "\033[91m"
+YELLOW = "\033[93m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 params = {
         "display_name": "Playground",
         "is_tab": True,
@@ -557,14 +562,16 @@ def get_available_LORA():
     #print (f"Scaling {shared.model.base_model.scaling}")
 
     prior_set = ['None']
-    print("Loaded adapters:")
+    print(RED+"List of available adapters in model:"+RESET)
     if hasattr(shared.model,'peft_config'):
         index = 1
         for adapter_name in shared.model.peft_config.items():
-            print(f"  {index}: {adapter_name[0]}")
+            print(f"  {GREEN}{index}:{RESET} {adapter_name[0]}")
             index = index+1
             prior_set.append(adapter_name[0])
-
+        
+        if index == 1:
+            print(RED+"  [None]"+RESET)
     return prior_set      
 
 def get_loaded_loras():
@@ -577,20 +584,49 @@ def get_loaded_loras():
 
 
 def set_LORA(item):
-      
+
+    #print(f"{YELLOW}Selected adapter in UI: {RESET} {item}")
     #prior_set = list(shared.lora_names)
     if hasattr(shared.model, 'set_adapter') and hasattr(shared.model, 'active_adapter'):
         #if prior_set:
-        if item =='None' and hasattr(shared.model.base_model, 'disable_adapter_layers'):
-            shared.model.base_model.disable_adapter_layers()
-            print (f"[Disable] Adapter ({shared.model.active_adapter})")   
+
+        if hasattr(shared.model.base_model, 'model'):
+            modelbasetype = shared.model.base_model.__class__.__name__
         else:
-            if item!=None:
+            modelbasetype = 'None'
+
+        modeltype = shared.model.__class__.__name__
+        if not hasattr(shared.model.base_model, 'disable_adapter_layers'):
+            
+            print(f"{RED} ERROR {RESET} {YELLOW}{modeltype}{RESET} ({modelbasetype}) is not correct PEFT model (PeftModelForCausalLM). You need to Load Lora first.")
+            
+            return
+
+
+        if (item =='None' or item == None):
+            shared.model.base_model.disable_adapter_layers()
+            print (f"{RED}[Disable]{RESET} Adapters in  {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
+        else:
+            adapters = get_loaded_loras()
+            
+            if item in adapters:
                 shared.model.set_adapter(item)
                 if hasattr(shared.model.base_model, 'enable_adapter_layers'):
                     shared.model.base_model.enable_adapter_layers()
+                    print (f"{GREEN}[Enable]{RESET} {shared.model.active_adapter} in {YELLOW}{modeltype}{RESET} ({modelbasetype})")
+                else:
+                     print(f"{RED} ERROR {RESET} {YELLOW}{modeltype}{RESET} with base {YELLOW}{modelbasetype}{RESET} is not correct PEFT model.")
 
-                print (f"[Enable] Adapter: {shared.model.active_adapter}")  
+            else:
+                print (f"No or unknown Adapter {item} in {adapters}")
+                
+                shared.model.base_model.disable_adapter_layers()
+                print (f"{RED}[Disable]{RESET} Adapters in {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
+        
+    else:
+        print(f"Wrong model {shared.model.__class__.__name__}, it has no support for adapters")                
+          
+        
                 
                 
             
@@ -780,7 +816,7 @@ def add_sub_weighted_adapter(model, adapters, weights, adapters_sub, weights_sub
 def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combined"):
     global params
     combination_type = params['combination_type']  
-    print(f"Combine {adapters} with weights {weights} into {adapter_name}")
+    print(f"Trying to combine {adapters} with weights {weights} into {adapter_name}")
     model.add_weighted_adapter(adapters, weights, adapter_name, combination_type)
    
 
@@ -801,19 +837,21 @@ def merge_loras(w1,w2):
             nAd = len(adapters)
             combination_type = params['combination_type']  
 
-            print(f"Merging: {adapters[0]} with {adapters[1]}")
+            print(f"{RED}Merging:{RESET} {adapters[0]} with {adapters[1]}")
  
             adaptname = f"Merge{nAd}_A{int(w1*100)}_B{int(w2*100)}_{combination_type}"
             create_weighted_lora_adapter(shared.model, [adapters[0], adapters[1]], [w1, w2],adaptname)
 
             adapters_post = get_loaded_loras()
             adapter_name = getattr(shared.model,'active_adapter','None')
-            print (f"Active adapter: {adapter_name}") 
-
+ 
             if len(adapters)!=len(adapters_post):
                 Select_last_lora()
+                print (f"{GREEN}[OK]{RESET} Combined adapter created")
+                print (f"{GREEN}Active adapter: {RESET}{adapter_name}") 
                 return f"Combined Adapter {adaptname} created"
             else:
+                print (f"{RED}[FAIL]{RESET} No New adapter created - {RED}PEFT tantrum{RESET}")
                 return "Combined Adapter failed"
 
         else:
@@ -834,12 +872,14 @@ def merge_loras3(w1,w2,w3):
             adapters_post = get_loaded_loras()
 
             adapter_name = getattr(shared.model,'active_adapter','None')
-            print (f"Active adapter: {adapter_name}")     
 
             if len(adapters)!=len(adapters_post):
                 Select_last_lora()
+                print (f"{GREEN}[OK]{RESET} Combined adapter created")
+                print (f"{GREEN}Active adapter: {RESET}{adapter_name}") 
                 return f"Combined Adapter {adaptname} created"
             else:
+                print (f"{RED}[FAIL]{RESET} No New adapter created -  {RED}PEFT tantrum{RESET}")
                 return f"Combined Adapter failed"
         else:
             return "You need to add 3 LoRA adapters in the model tab (Transformers)"
@@ -861,13 +901,16 @@ def rescale_lora(w1):
             adapters_post = get_loaded_loras()
 
             adapter_name = getattr(shared.model,'active_adapter','None')
-            print (f"Active adapter: {adapter_name}") 
-
+ 
             if len(adapters)!=len(adapters_post):
                 Select_last_lora()
+                print (f"{GREEN}[OK]{RESET} New adapter created")
+                print (f"{GREEN}Active adapter: {RESET}{adapter_name}") 
+
                 return f"Rescalled Adapter {adaptname} created"
                 
             else:
+                print (f"{RED}[FAIL]{RESET} No New adapter created - {RED}PEFT tantrum{RESET}")
                 return f"Rescalled Adapter failed"
         else:
             return "You need to add a LoRA adapters in the model tab (Transformers)"
@@ -1487,7 +1530,7 @@ def ui():
         
         selected_lora_main_sub = path
 
-        print(f"Adding Lora from: {lora_path} lora-name: {selected_lora_main_sub}")
+        print(f"{YELLOW}Adding Lora from:{RESET} {lora_path}")
 
         if os.path.isdir(lora_path):
            
@@ -1497,7 +1540,10 @@ def ui():
             else:    
                 if shared.model_name!='None' and shared.model_name!='':
                     yield (f"Adding the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
-                    shared.model.load_adapter(lora_path, selected_lora_main_sub)
+
+                    newkey = selected_lora_main_sub
+
+                    shared.model.load_adapter(lora_path, newkey)
                     loras_after =  get_loaded_loras()
                     if loras_before == loras_after:
                         print("No Lora Added")
@@ -1505,7 +1551,7 @@ def ui():
                     else:
                         # get last item of loras_after
                         last_lora = loras_after[-1]
-                        print (f"Added Lora {last_lora}")
+                        print (f"{GREEN}Added Lora: {RESET} {last_lora}")
                         yield (f"Added Lora {last_lora}")
             Select_last_lora()    
             adapter_name = getattr(shared.model,'active_adapter','None')
@@ -1556,7 +1602,7 @@ def ui():
         if os.path.isdir(lora_path):
                
             if shared.model_name!='None' and shared.model_name!='':
-                yield (f"Applying the following LoRAs to {shared.model_name} : {selected_lora_main_sub}")
+                yield (f"Applying the following LoRAs to {YELLOW}{shared.model_name}{RESET} : {selected_lora_main_sub}")
 
                 shared.lora_names = []
                 loras_before = get_loaded_loras()
@@ -1571,18 +1617,37 @@ def ui():
                     print("LORA -> Transformers") 
 
 
-                    if hasattr(shared.model, 'disable_adapter'):  
-                        #shared.model.disable_adapter()
+                    if hasattr(shared.model, 'disable_adapter'):
+                        print (RED+"Disable PEFT adapter"+RESET)  
+                        shared.model.disable_adapter()
                         #delete_All_ButFirst()
                         #shared.model = shared.model.base_model.model.unload()
-                        print("model < model.base_model.model") 
-                        shared.model = shared.model.base_model.model
                         
+                    modeltype = shared.model.__class__.__name__
 
-                
-               
+                    if hasattr(shared.model.base_model, 'model'):
+                        modelbasetype = shared.model.base_model.model.__class__.__name__
+
+                        print(f"Returning  model {YELLOW}{modeltype}{RESET} back to {YELLOW}{modelbasetype}{RESET}") 
+                        shared.model = shared.model.base_model.model
+                    else:
+                        print(f"Starting from {YELLOW}clean{RESET} model {YELLOW}{modeltype}{RESET}") 
+
+
+                modeltype = shared.model.__class__.__name__
+
+                print(f"Creating {RED}PEFT{RESET} model for {YELLOW}{modeltype}{RESET}")
+
                 #if len(loras_before) == 0:
                 add_lora_to_model(selected_lora_main_sub)
+                modeltype = shared.model.__class__.__name__
+
+                if hasattr(shared.model.base_model, 'model'):
+                    modelbasetype = shared.model.base_model.model.__class__.__name__
+                    print(f"{GREEN}[OK] {RESET} Model {YELLOW}{modeltype}{RESET} created on top of {YELLOW}{modelbasetype}{RESET} with {GREEN}{selected_lora_main_sub}{RESET}")
+                else: 
+                    print(f"{RED}Error - no PEFT model created for{RESET} {YELLOW}{modeltype}{RESET}")
+
                 #Select_last_lora()
 
                 #else: 
@@ -1600,10 +1665,11 @@ def ui():
                     yield "Successfuly applied the new LoRA"   
                     
             else:
+                print("you have no model loaded yet!")
                 yield 'No Model loaded...' 
             
             adapter_name = getattr(shared.model,'active_adapter','None')
-            print (f"Active adapter: {adapter_name}")      
+            print (f"{YELLOW}Active adapter:{RESET} {adapter_name}")      
 
     def reload_and_lora(selectlora,selectsub):
         global selected_lora_main_sub
@@ -1682,7 +1748,12 @@ def ui():
         choice2[1] = "A: "+choice2[1]
         choice2[2] = "B: "+choice2[2]
         choice2[3] = "C: "+choice2[3]
-        return gr.Radio.update(choices=choice, value= getattr(shared.model, 'active_adapter', None)),gr.Slider.update(label=choice2[1]),gr.Slider.update(label=choice2[2]),gr.Slider.update(label=choice2[3])
+
+        cur_adapt = getattr(shared.model, 'active_adapter', 'None')
+        if cur_adapt not in choice:
+            cur_adapt = 'None'
+
+        return gr.Radio.update(choices=choice, value= cur_adapt),gr.Slider.update(label=choice2[1]),gr.Slider.update(label=choice2[2]),gr.Slider.update(label=choice2[3])
 
  # log is my recent PR
     def load_log():

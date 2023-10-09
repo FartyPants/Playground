@@ -562,16 +562,24 @@ def get_available_LORA():
     #print (f"Scaling {shared.model.base_model.scaling}")
 
     prior_set = ['None']
-    print(RED+"List of available adapters in model:"+RESET)
-    if hasattr(shared.model,'peft_config'):
-        index = 1
-        for adapter_name in shared.model.peft_config.items():
-            print(f"  {GREEN}{index}:{RESET} {adapter_name[0]}")
-            index = index+1
-            prior_set.append(adapter_name[0])
-        
-        if index == 1:
-            print(RED+"  [None]"+RESET)
+    
+    if shared.model:
+        if hasattr(shared.model,'peft_config'):
+            print(RED+"List of available adapters in model:"+RESET)
+            index = 1
+            for adapter_name in shared.model.peft_config.items():
+                print(f"  {GREEN}{index}:{RESET} {adapter_name[0]}")
+                index = index+1
+                prior_set.append(adapter_name[0])
+            
+            if index == 1:
+                print(RED+"  [None]"+RESET)
+        else:
+            print(f'({shared.model_name} is not PEFT model)')
+
+    else:
+        print('(no model loaded yet)')
+
     return prior_set      
 
 def get_loaded_loras():
@@ -587,6 +595,10 @@ def set_LORA(item):
 
     #print(f"{YELLOW}Selected adapter in UI: {RESET} {item}")
     #prior_set = list(shared.lora_names)
+    if shared.model == None:
+        print(f"No Model loaded")    
+        return
+    print(RED+ 'SET LORA:'+RESET)
     if hasattr(shared.model, 'set_adapter') and hasattr(shared.model, 'active_adapter'):
         #if prior_set:
 
@@ -598,14 +610,14 @@ def set_LORA(item):
         modeltype = shared.model.__class__.__name__
         if not hasattr(shared.model.base_model, 'disable_adapter_layers'):
             
-            print(f"{RED} ERROR {RESET} {YELLOW}{modeltype}{RESET} ({modelbasetype}) is not correct PEFT model (PeftModelForCausalLM). You need to Load Lora first.")
+            print(f"{RED} ERROR {RESET} {YELLOW}{modeltype}{RESET} ({modelbasetype}) is not PEFT model (PeftModelForCausalLM). You need to Load Lora first.")
             
             return
 
 
         if (item =='None' or item == None):
             shared.model.base_model.disable_adapter_layers()
-            print (f"{RED}[Disable]{RESET} Adapters in  {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
+            print (f"{RED} [Disable]{RESET} Adapters in  {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
         else:
             adapters = get_loaded_loras()
             
@@ -613,7 +625,7 @@ def set_LORA(item):
                 shared.model.set_adapter(item)
                 if hasattr(shared.model.base_model, 'enable_adapter_layers'):
                     shared.model.base_model.enable_adapter_layers()
-                    print (f"{GREEN}[Enable]{RESET} {shared.model.active_adapter} in {YELLOW}{modeltype}{RESET} ({modelbasetype})")
+                    print (f"{GREEN} [Enable]{RESET} {shared.model.active_adapter} in {YELLOW}{modeltype}{RESET} ({modelbasetype})")
                 else:
                      print(f"{RED} ERROR {RESET} {YELLOW}{modeltype}{RESET} with base {YELLOW}{modelbasetype}{RESET} is not correct PEFT model.")
 
@@ -621,10 +633,10 @@ def set_LORA(item):
                 print (f"No or unknown Adapter {item} in {adapters}")
                 
                 shared.model.base_model.disable_adapter_layers()
-                print (f"{RED}[Disable]{RESET} Adapters in {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
+                print (f"{RED} [Disable]{RESET} Adapters in {YELLOW}{modeltype}{RESET} ({modelbasetype})")   
         
     else:
-        print(f"Wrong model {shared.model.__class__.__name__}, it has no support for adapters")                
+        print(f" Wrong model {shared.model.__class__.__name__}, it has no support for adapters")                
           
         
                 
@@ -1025,7 +1037,10 @@ def ui():
     global selected_lora_main_sub
     global selected_lora_main
     global selected_lora_sub
-    model_name = getattr(shared.model,'active_adapter','None')
+    if shared.model:
+        model_name = str(getattr(shared.model,'active_adapter','None'))
+    else:
+        model_name = str('None')
 
     for key in defaultTemp_keys:
         params[key] = defaultTemp[key]

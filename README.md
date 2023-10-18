@@ -13,7 +13,7 @@ Playground is a collection of many things in one, but I also carved some of the 
 
 - Twinbook
 [https://github.com/FartyPants/Twinbook](https://github.com/FartyPants/Twinbook)
-Takes the two-notebook idea much further. It clevery combines notebook and chat, you may find it very appealing. (or not) I actually use it now solely for writing.
+Takes the two-notebook idea much further. It clevery combines notebook and chat, you may find it very appealing. (or not) I actually use it now solely for rewriting and testing.
 - Virtual Lora
 [https://github.com/FartyPants/VirtualLora](https://github.com/FartyPants/VirtualLora)
 Much more refined Lora-Rama from Playbook, designed to organize a large collection of LORAs

@@ -17,6 +17,9 @@ Takes the two-notebook idea much further. It clevery combines notebook and chat,
 - Virtual Lora
 [https://github.com/FartyPants/VirtualLora](https://github.com/FartyPants/VirtualLora)
 Much more refined Lora-Rama from Playbook, designed to organize a large collection of LORAs
+- Token Loupe
+[https://github.com/FartyPants/TokenLoupe](https://github.com/FartyPants/TokenLoupe)
+Takes the Token display to next level (and makes it part of chat). It also writes colored tokenized words in Terminal which is funky
 
 ![image](https://github.com/FartyPants/Playground/assets/23346289/26f6adb9-4b32-4a86-8493-7e47ef0b11b2)
 

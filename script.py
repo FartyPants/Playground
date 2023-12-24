@@ -676,7 +676,7 @@ def get_available_loras():
     else:
         subfolders = list_Folders_byAlpha(model_dir)      
 
-    subfolders.insert(0, 'None')
+    subfolders.insert(0, 'Nonefmerge')
     return subfolders      
 
 
@@ -1637,12 +1637,15 @@ def ui():
                             # shared.model may no longer be PeftModel
                     print("LORA -> Transformers") 
 
-
+                    # I think the unload in PEFT is broken or I have no idea how it suppose to work because it doesn't delete the adapters
+                        
                     if hasattr(shared.model, 'disable_adapter'):
                         print (RED+"Disable PEFT adapter"+RESET)  
                         shared.model.disable_adapter()
-                        #delete_All_ButFirst()
-                        #shared.model = shared.model.base_model.model.unload()
+                        adapters = list(shared.model.peft_config.keys())
+                        for adapter in adapters:
+                            print(f"Deleting {RED}{adapter}{RESET}")  
+                            shared.model.delete_adapter(adapter)
                         
                     modeltype = shared.model.__class__.__name__
 

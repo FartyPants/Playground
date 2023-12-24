@@ -5,7 +5,7 @@
 Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
 # New: 
-- going around (a bug in) PEFT unload. I don't think it works as it should.
+- going around (a bug in) PEFT unload. I don't think it works in PEFT as it should.
 - Auto scroll!!
 - lot of error code handling for LORA - PEFT keeps changing so much that things stop working randomly so it needed some better robust code to go and not blow with errors)
 

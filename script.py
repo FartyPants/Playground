@@ -9,7 +9,7 @@ from modules.ui import list_interface_input_elements
 from modules.ui import gather_interface_values
 from modules.html_generator import generate_basic_html
 from pathlib import Path
-from modules.LoRA import add_lora_autogptq, add_lora_exllama, add_lora_exllamav2
+from modules.LoRA import add_lora_autogptq, add_lora_exllamav2
 import re
 import json
 import os
@@ -1720,8 +1720,6 @@ def ui():
 
                 if 'GPTQForCausalLM' in shared.model.__class__.__name__ or shared.args.loader == 'AutoGPTQ':
                     print("LORA -> AutoGPTQ")
-                elif shared.model.__class__.__name__ in ['ExllamaModel', 'ExllamaHF'] or shared.args.loader == 'ExLlama':
-                    print("LORA -> Exllama")
                 elif shared.model.__class__.__name__ in ['Exllamav2Model', 'Exllamav2HF'] or shared.args.loader == ['ExLlamav2', 'ExLlamav2_HF']:
                     print("LORA -> Exllama V2")     
                 else:

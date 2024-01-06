@@ -105,90 +105,47 @@ params = {
 
 file_nameJSON = "playground.json"
 
-default_req_params = {
-    'max_new_tokens': 200,
-    'temperature': 0.7,
-    'top_p': 0.1,
-    'top_k': 40,
-    'repetition_penalty': 1.18,
-    'encoder_repetition_penalty': 1.0,
-    'suffix': None,
-    'stream': True,
-    'echo': False,
-    'seed': -1,
-    'truncation_length': 2048,
-    'add_bos_token': True,
-    'do_sample': True,
-    'typical_p': 1.0,
-    'epsilon_cutoff': 0,  # In units of 1e-4
-    'eta_cutoff': 0,  # In units of 1e-4
-    'tfs': 1.0,
-    'top_a': 0.0,
-    'min_length': 0,
-    'no_repeat_ngram_size': 0,
-    'num_beams': 1,
-    'penalty_alpha': 0.0,
-    'length_penalty': 1,
-    'early_stopping': False,
-    'mirostat_mode': 0,
-    'mirostat_tau': 5,
-    'mirostat_eta': 0.1,
-    'ban_eos_token': False,
-    'skip_special_tokens': True,
-    'custom_stopping_strings': '',
-}
+temeraments = ['Default','Strict','Low','Moderate','Creative','Inventive','Crazy',]
 
-temeraments = ['Strict','Low','Moderate','Creative','Inventive','Crazy']
-
-default_req_params_paraphrase = {}
-
-default_req_params_paraphrase['Strict'] = {
-    'temperature': 0.7,
-    'top_p': 0.1,
-    'top_k': 40,
-    'repetition_penalty': 1.18
-}
-
-
-default_req_params_paraphrase['Low'] = {
-    'temperature': 0.1,
-    'top_p': 1.0,
-    'top_k': 0,
-    'repetition_penalty': 1.2,
-}
-
-"""default_req_params_paraphrase['Determined2'] = {
-    'temperature': 0.3,
-    'top_p': 0.75,
-    'top_k': 40,
-    'repetition_penalty': 1.2,
-}
-"""
-default_req_params_paraphrase['Moderate'] = {
-    'temperature': 0.7,
-    'top_p': 0.5,
-    'top_k': 40,
-    'repetition_penalty': 1.2,
-}
-
-default_req_params_paraphrase['Creative'] = {
-    'temperature': 1.0,
-    'top_p': 0.4,
-    'top_k': 40,
-    'repetition_penalty': 1.2,
-}
-
-default_req_params_paraphrase['Inventive'] = {
-    'temperature': 1.1,
-    'top_p': 0.75,
-    'top_k': 40,
-    'repetition_penalty': 1.2,
-}
-default_req_params_paraphrase['Crazy']  = {
-    'temperature': 1.75,
-    'top_p': 0.6,
-    'top_k': 100,
-    'repetition_penalty': 1.2,
+default_req_params_paraphrase = {
+    'Default': {},
+    'Strict': {
+        'temperature': 0.7,
+        'top_p': 0.1,
+        'top_k': 40,
+        'repetition_penalty': 1.18
+    },
+    'Low': {
+        'temperature': 0.1,
+        'top_p': 1.0,
+        'top_k': 0,
+        'repetition_penalty': 1.2,
+    },
+    'Moderate': {
+        'temperature': 0.7,
+        'top_p': 0.5,
+        'top_k': 40,
+        'repetition_penalty': 1.2,
+    },
+    'Creative': {
+        'temperature': 1.0,
+        'top_p': 0.4,
+        'top_k': 40,
+        'repetition_penalty': 1.2,
+    },
+    'Inventive': {
+        'temperature': 1.1,
+        'top_p': 0.75,
+        'top_k': 40,
+        'repetition_penalty': 1.2,
+    },
+    'Crazy': {
+        'temperature': 1.75,
+        'top_p': 0.6,
+        'top_k': 100,
+        'repetition_penalty': 1.2,
+    },
+    
 }
 
 def atoi(text):
@@ -389,16 +346,17 @@ def generate_paraphrase(question, state,selectState,paraphrase, summary):
     paraph_undoSEL[0] = params[selectState][0]
     paraph_undoSEL[1] = params[selectState][1]
     
-    for key, value in default_req_params.items():
-        summary_state[key] = value  # Update the value in 'summary_state' with the value from 'default_req_params
+    for key, value in shared.persistent_interface_state.items():
+        summary_state[key] = value  # Update the value in 'summary_state' with the value from  generate params
 
-    for key, value in default_req_params_paraphrase.items():
-        if params['paraph_temperament'] == key:
-            print(f"Temperament: {key}")
-            for key2, value2 in value.items():
-                print(f"{key2}:{value2}")
-                summary_state[key2] = value2  # Update the to paraphrase
-            break
+
+    override_default = default_req_params_paraphrase[params['paraph_temperament']] 
+    for key, val in override_default.items():
+        summary_state[key] = val # Updates 'summary state' if override radio box is not default
+
+    for k in default_req_params_paraphrase['Strict'].keys():
+        print(f"{k}:{summary_state[k]}") #debug print temperature, top_k, top_p and repitition penalty
+
       
 
     params['paraph_templ_text'] = paraphrase
@@ -415,7 +373,6 @@ def generate_paraphrase(question, state,selectState,paraphrase, summary):
     
 
 
-    #prompt = generate_prompt(prompt,summary)   
 
     for reply in generate_reply(prompt, summary_state, stopping_strings=None, is_chat=False):
         params[selectState][1] = selF+len(reply)
@@ -518,8 +475,8 @@ def generate_summary(inptext, state, selectState):
     
     summary_state = state.copy()
     
-    for key, value in default_req_params.items():
-        summary_state[key] = value  # Update the value in 'summary_state' with the value from 'default_req_params
+    for key, value in shared.persistent_interface_state.items():
+        summary_state[key] = value  
         
     user = params['pUSER']    
     bot = params['pBOT']  

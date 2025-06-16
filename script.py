@@ -9,7 +9,7 @@ from modules.ui import list_interface_input_elements
 from modules.ui import gather_interface_values
 from modules.html_generator import generate_basic_html
 from pathlib import Path
-from modules.LoRA import add_lora_autogptq, add_lora_exllamav2
+from modules.LoRA import add_lora_exllamav2
 import re
 import json
 import os
@@ -100,7 +100,8 @@ params = {
         "list_by_time":False,
         "dyn_templ_sel": 'None',
         "dyn_templ_text":'',
-        "combination_type":'linear'
+        "combination_type":'linear',
+        "comb_density": 0.2
     }
 
 file_nameJSON = "playground.json"
@@ -829,8 +830,10 @@ def add_sub_weighted_adapter(model, adapters, weights, adapters_sub, weights_sub
 def create_weighted_lora_adapter(model, adapters, weights, adapter_name="combined"):
     global params
     combination_type = params['combination_type']  
+    comb_density = params['comb_density']
+
     print(f"Trying to combine {adapters} with weights {weights} into {adapter_name}")
-    model.add_weighted_adapter(adapters, weights, adapter_name, combination_type)
+    model.add_weighted_adapter(adapters, weights, adapter_name, combination_type, density = comb_density)
    
 
 def Select_last_lora():
@@ -1162,7 +1165,8 @@ def ui():
                                 lora_combine_w2 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA B", value=1.0)
                                 lora_combine_w3 = gr.Slider(minimum=0, maximum=1.0, step=0.05, label="LoRA C", value=1.0)
                                 lora_neg = gr.Checkbox(value=False,label="Allow negative")
-                                combination_type = gr.Dropdown(choices=['svd', 'linear', 'cat'], value='linear', label='LoRA Merge Type')
+                                combination_type = gr.Dropdown(choices=['svd', 'linear', 'cat','ties', 'ties_svd', 'dare_linear' , 'dare_ties' , 'dare_linear_svd' ,'dare_ties_svd', 'magnitude_prune' , 'magnitude_prune_svd'], value='linear', label='LoRA Merge Type')
+                                comb_density = gr.Slider(minimum=0.00, maximum=1.0, step=0.05, label="Density (DARE, TIES, MAGNITUDE)", value=0.2, interactive=True)
                                 gr.Markdown(value="*svd* merge different ranks, *linear* merge same rank, *cat* sums ranks")
                                 with gr.Row():
                                     lora_scale = gr.Button(value='Rescale A')
@@ -1575,9 +1579,7 @@ def ui():
 
 
     def add_lora_to_model(lora_name):
-        if 'GPTQForCausalLM' in shared.model.__class__.__name__ or shared.args.loader == 'AutoGPTQ':
-            add_lora_autogptq([lora_name])
-        elif shared.model.__class__.__name__ in ['ExllamaModel', 'ExllamaHF'] or shared.args.loader == 'ExLlama':
+        if shared.model.__class__.__name__ in ['ExllamaModel', 'ExllamaHF'] or shared.args.loader == 'ExLlama':
             add_lora_exllama([lora_name])
         elif shared.model.__class__.__name__ in ['Exllamav2Model', 'Exllamav2HF'] or shared.args.loader == ['ExLlamav2', 'ExLlamav2_HF']:
             add_lora_exllamav2([lora_name])
@@ -1921,6 +1923,7 @@ def ui():
 
 
     combination_type.change(lambda x: params.update({"combination_type": x}), combination_type, None) 
+    comb_density.change(lambda x: params.update({"comb_density": x}), comb_density, None) 
     #lorasub.change(path_from_selected,[loramenu,lorasub],displaytext)
 
     def change_sort(sort):

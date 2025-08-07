@@ -1,4 +1,5 @@
 # Playground for Writers (and other meatbags)
+Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q5MOB4M)
 
@@ -10,8 +11,6 @@ Find it on [Amazon](https://www.amazon.com/dp/B0FLBTR2FS), [Apple Books](https:/
 
 By some miracle of fate, and the pure, unadulterated terror of having to actually finish the damned thing, my last two years of feverish, frustrating, and occasionally glorious LLM experiments have been distilled into a real, live, actual book! And not some little pamphlet, but a whopping 600 freaking pages long!
 
-
-Another pure masterpiece from FPHam, Text WebUI extension to add clever multi-Notebook TAB to Chat mode
 
 # New: 
 - going around (a bug in) PEFT unload. I don't think it works in PEFT as it should.
